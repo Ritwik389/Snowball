@@ -1,26 +1,74 @@
 @import "tailwindcss";
+@plugin "daisyui";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:where(.dark, [data-theme="synthwave"], [data-theme="dark"] *));
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+@theme {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-primary-glow: #ff00ff;
+  --color-secondary-glow: #00ffff;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* DaisyUI Theme Configuration */
+:root {
+  --color-primary: oklch(0.6 0.18 280);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+[data-theme="synthwave"] {
+  color-scheme: dark;
+  --bg-grid: rgba(255, 0, 255, 0.05);
+  
+  --color-primary: #ff00ff;
+  --color-secondary: #00ffff;
+  --color-accent: #f0abfc;
+  --color-neutral: #1a1a2e;
+  --color-base-100: #05051a;
+  --color-base-200: #0f0f2d;
+  --color-base-300: #1a1a3a;
+  --color-info: #00ffff;
+  --color-success: #4ade80;
+  --color-warning: #facc15;
+  --color-error: #f87171;
+}
+
+@layer base {
+  body {
+    @apply transition-colors duration-500 antialiased;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  .neon-text-primary {
+    text-shadow: 0 0 10px rgba(255, 0, 255, 0.8), 0 0 20px rgba(255, 0, 255, 0.5);
+  }
+  .neon-text-secondary {
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 20px rgba(0, 255, 255, 0.5);
+  }
+  .neon-border-primary {
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.4), inset 0 0 15px rgba(255, 0, 255, 0.1);
+    border-color: rgba(255, 0, 255, 0.5);
+  }
+  .glass-card {
+    @apply bg-base-100/40 backdrop-blur-xl border border-white/10 shadow-2xl;
+  }
+  .synth-grid {
+    background-image: 
+        linear-gradient(var(--bg-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+}
+
+.vanta-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
 }
