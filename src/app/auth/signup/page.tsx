@@ -38,26 +38,26 @@ export default function SignUpPage() {
       <VantaBackground />
       
       <div className="relative z-10 w-full max-w-md">
-        <div className="card bg-base-100/80 backdrop-blur-xl shadow-2xl border border-white/10 p-8 sm:p-12">
+        <div className="card bg-base-100/80 backdrop-blur-xl shadow-2xl border border-white/10 p-8 sm:p-12 text-white">
           <div className="flex flex-col items-center mb-8">
             <div className="bg-primary p-3 rounded-2xl mb-4 shadow-lg shadow-primary/30">
               <Zap className="w-8 h-8 text-primary-content fill-current" />
             </div>
-            <h1 className="text-3xl font-black tracking-tight">Join Snowball</h1>
-            <p className="text-base-content/60 font-medium text-center">Break down your goals, build your legacy.</p>
+            <h1 className="text-3xl font-black tracking-tight text-white">Join Snowball</h1>
+            <p className="font-medium text-center text-white/70">Break down your goals, build your legacy.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-bold flex items-center gap-2">
+                <span className="font-bold flex items-center gap-2 text-white">
                   <User className="w-4 h-4" /> Full Name
                 </span>
               </label>
               <input 
                 type="text" 
                 placeholder="Ritwik Jain" 
-                className="input input-bordered focus:input-primary bg-base-200/50" 
+                className="input input-bordered focus:input-primary bg-base-200/50 text-white placeholder:text-white/35" 
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required 
@@ -66,14 +66,14 @@ export default function SignUpPage() {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-bold flex items-center gap-2">
+                <span className="font-bold flex items-center gap-2 text-white">
                   <Mail className="w-4 h-4" /> Email Address
                 </span>
               </label>
               <input 
                 type="email" 
                 placeholder="ritwik@example.com" 
-                className="input input-bordered focus:input-primary bg-base-200/50" 
+                className="input input-bordered focus:input-primary bg-base-200/50 text-white placeholder:text-white/35" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required 
@@ -82,14 +82,14 @@ export default function SignUpPage() {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-bold flex items-center gap-2">
+                <span className="font-bold flex items-center gap-2 text-white">
                   <Lock className="w-4 h-4" /> Password
                 </span>
               </label>
               <input 
                 type="password" 
                 placeholder="••••••••" 
-                className="input input-bordered focus:input-primary bg-base-200/50" 
+                className="input input-bordered focus:input-primary bg-base-200/50 text-white placeholder:text-white/35" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required 
@@ -105,14 +105,14 @@ export default function SignUpPage() {
 
             <button 
               type="submit" 
-              className="btn btn-primary btn-block h-14 rounded-xl text-lg font-bold shadow-lg shadow-primary/20 mt-4"
+              className="btn btn-primary btn-block h-14 rounded-xl text-lg font-bold text-white shadow-lg shadow-primary/20 mt-4"
               disabled={loading}
             >
               {loading ? <Loader2 className="animate-spin" /> : 'Create Account'}
             </button>
           </form>
 
-          <div className="mt-8 text-center text-sm font-medium opacity-50">
+          <div className="mt-8 text-center text-sm font-medium text-white/60">
             Already have an account? 
             <Link href="/auth/signin" className="text-primary ml-1 hover:underline inline-flex items-center">
               Sign In <ArrowRight className="w-3 h-3 ml-1" />

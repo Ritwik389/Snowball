@@ -2,14 +2,21 @@
 
 import Spline, { type SplineEvent } from '@splinetool/react-spline';
 import { useRouter } from 'next/navigation';
+import { useTheme } from '@/frontend/context/ThemeContext';
 
 const ACTIONS: Array<{ match: string[]; href: string }> = [
   { match: ['lets do it', "let's do it", 'launch mission', 'get started', 'sign in'], href: '/auth/signin' },
   { match: ['how it works', 'how snowball works'], href: '/how-it-works' },
 ];
 
+const LIGHT_MODE_SCENE = 'https://prod.spline.design/Fx-5fuTVHm5Sm1U2/scene.splinecode';
+const DARK_MODE_SCENE = 'https://prod.spline.design/6TzaWCytLe5704TI/scene.splinecode';
+
 export default function SplineBackground() {
   const router = useRouter();
+  const { theme } = useTheme();
+
+  const scene = theme === 'light' ? LIGHT_MODE_SCENE : DARK_MODE_SCENE;
 
   const handleSplineAction = (event: SplineEvent) => {
     const targetName = event.target.name?.trim().toLowerCase();
@@ -36,7 +43,8 @@ export default function SplineBackground() {
   return (
     <div className="fixed inset-0 z-0">
       <Spline
-        scene="https://prod.spline.design/jUs4wqRIMRdVu313/scene.splinecode"
+        key={theme}
+        scene={scene}
         onSplineMouseDown={handleSplineAction}
         onSplineMouseUp={handleSplineAction}
       />

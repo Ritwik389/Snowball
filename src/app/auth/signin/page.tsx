@@ -134,7 +134,7 @@ function SignInForm() {
 
             <button 
               type="submit" 
-              className="btn btn-primary btn-block mt-2 h-16 rounded-2xl text-base font-black uppercase tracking-[0.25em] shadow-2xl shadow-primary/25"
+              className="btn btn-primary btn-block mt-2 h-16 rounded-2xl text-base font-black uppercase tracking-[0.25em] text-white shadow-2xl shadow-primary/25"
               disabled={loading}
             >
               {loading ? <Loader2 className="animate-spin" /> : 'Launch Dashboard'}

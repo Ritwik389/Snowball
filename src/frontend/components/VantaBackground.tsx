@@ -2,58 +2,50 @@
 
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-// @ts-expect-error no types
-import WAVES from 'vanta/dist/vanta.waves.min';
 
 type VantaEffect = {
   destroy: () => void;
 };
 
+declare global {
+  interface Window {
+    THREE?: typeof THREE;
+  }
+}
+
 const VantaBackground = () => {
   const vantaRef = useRef<HTMLDivElement>(null);
-  const vantaEffectRef = useRef<VantaEffect | null>(null);
 
   useEffect(() => {
-    const vantaEl = vantaRef.current;
+    let effect: VantaEffect | undefined;
 
-    if (vantaEl && !vantaEffectRef.current) {
-      (window as any).THREE = THREE;
+    const init = async () => {
+      if (!vantaRef.current) return;
 
-      try {
-        vantaEffectRef.current = WAVES({
-          el: vantaEl,
-          THREE: THREE,
-          mouseControls: true,
-          touchControls: true,
-          gyroControls: false,
-          minHeight: 200,
-          minWidth: 200,
-          scale: 1,
-          scaleMobile: 1,
-          color: 0x453161,
-          shininess: 40,
-          waveHeight: 20,
-          waveSpeed: 1.2,
-          zoom: 1
-        });
-      } catch (err) {
-        console.error('Vanta initialization failed:', err);
-      }
-    }
+      window.THREE = THREE;
+
+      const WAVES = (await import('vanta/dist/vanta.waves.min')).default;
+
+      effect = WAVES({
+        el: vantaRef.current,
+        THREE: THREE,
+        color: 0x38bdf8,
+        backgroundColor: 0x020617,
+        waveHeight: 30,
+      });
+    };
+
+    init();
 
     return () => {
-      if (vantaEffectRef.current) {
-        vantaEffectRef.current.destroy();
-        vantaEffectRef.current = null;
-      }
+      if (effect) effect.destroy();
     };
   }, []);
 
   return (
     <div
       ref={vantaRef}
-      className="vanta-container fixed inset-0 z-0 pointer-events-none"
-      style={{ backgroundColor: '#000000' }}
+      className="fixed inset-0 z-0"
     />
   );
 };

@@ -25,7 +25,7 @@ export default function LandingPage() {
         </button>
       </div>
 
-      <div className="relative z-20 mt-auto mb-14 flex w-full max-w-sm flex-col items-center gap-4">
+      <div className="relative z-20 mt-auto mb-14 flex w-full max-w-[14rem] flex-col items-center gap-3">
         <motion.div
           initial={{ opacity: 0, y: 18, scale: 0.96 }}
           animate={{
@@ -50,7 +50,7 @@ export default function LandingPage() {
         >
         <Link
           href="/auth/signin"
-          className="btn h-14 w-full rounded-2xl border-none bg-blue-600 text-base font-black uppercase tracking-[0.22em] text-white transition-all duration-300 hover:bg-blue-500"
+          className="btn h-11 w-full rounded-xl border-none bg-gradient-to-r from-sky-500 via-blue-600 to-cyan-400 px-5 text-sm font-black uppercase tracking-[0.18em] text-white shadow-[0_16px_36px_rgba(14,165,233,0.35)] transition-all duration-300 hover:from-sky-400 hover:via-blue-500 hover:to-cyan-300"
         >
           Let&apos;s Do It
           <motion.span
@@ -58,14 +58,14 @@ export default function LandingPage() {
             transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
             className="flex items-center"
           >
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="h-4 w-4" />
           </motion.span>
         </Link>
         </motion.div>
 
         <Link
           href="/how-it-works"
-          className="btn h-12 w-full rounded-2xl border border-white/15 bg-base-100/20 px-6 text-sm font-black uppercase tracking-[0.2em] text-white backdrop-blur-md hover:bg-base-100/30"
+          className="btn h-10 w-full rounded-xl border border-white/15 bg-base-100/20 px-5 text-xs font-black uppercase tracking-[0.16em] text-white backdrop-blur-md hover:bg-base-100/30"
         >
           How It Works
         </Link>

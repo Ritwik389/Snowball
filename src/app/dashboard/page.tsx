@@ -470,17 +470,17 @@ export default function Dashboard() {
               </div>
 
               {creationMode === 'ai' ? (
-                <div className="glass-card p-10 rounded-[2rem] border-primary/20">
+                <div className="glass-card p-10 rounded-[2rem] border-primary/20 text-white">
                     <h2 className="text-2xl font-black mb-6 italic neon-text-primary">DUMP YOUR BRAIN</h2>
-                    <p className="text-sm opacity-60 mb-6 font-medium uppercase tracking-widest">Type your overwhelming thoughts and let Gemini divide them.</p>
+                    <p className="text-sm text-white/65 mb-6 font-medium uppercase tracking-widest">Type your overwhelming thoughts and let Gemini divide them.</p>
                     <textarea 
-                        className="textarea textarea-bordered textarea-lg w-full h-48 mb-8 bg-base-100/30 border-white/10 focus:border-primary text-xl leading-relaxed"
+                        className="textarea textarea-bordered textarea-lg w-full h-48 mb-8 bg-base-100/30 border-white/10 focus:border-primary text-xl leading-relaxed text-white placeholder:text-white/35"
                         placeholder="e.g., I need to launch my website, clean the garage, and find a gift for my friend's birthday..."
                         value={goal}
                         onChange={(e) => setGoal(e.target.value)}
                     />
                     <button 
-                        className="btn btn-primary btn-block btn-lg rounded-2xl h-16 shadow-lg shadow-primary/20 font-black italic text-xl"
+                        className="btn btn-primary btn-block btn-lg rounded-2xl h-16 shadow-lg shadow-primary/20 font-black italic text-xl text-white"
                         onClick={handleAIGenerate}
                         disabled={!goal || isLoading}
                     >
@@ -489,15 +489,15 @@ export default function Dashboard() {
                     </button>
                 </div>
               ) : (
-                <form onSubmit={handleManualCreate} className="glass-card p-10 rounded-[2rem] border-primary/20">
+                <form onSubmit={handleManualCreate} className="glass-card p-10 rounded-[2rem] border-primary/20 text-white">
                     <h2 className="text-2xl font-black mb-8 italic neon-text-primary uppercase tracking-tight">New Mission Objective</h2>
                     
                     <div className="grid gap-8">
                         <div className="form-control">
-                            <label className="label uppercase tracking-widest text-xs font-black opacity-60">Task Title</label>
+                            <label className="label uppercase tracking-widest text-xs font-black text-white/65">Task Title</label>
                             <input 
                                 required
-                                className="input input-bordered bg-base-100/30 border-white/10 focus:border-primary text-lg"
+                                className="input input-bordered bg-base-100/30 border-white/10 focus:border-primary text-lg text-white placeholder:text-white/35"
                                 value={manualTask.title}
                                 onChange={(e) => setManualTask({...manualTask, title: e.target.value})}
                             />
@@ -505,9 +505,9 @@ export default function Dashboard() {
 
                         <div className="grid grid-cols-2 gap-6">
                             <div className="form-control">
-                                <label className="label uppercase tracking-widest text-xs font-black opacity-60">Importance</label>
+                                <label className="label uppercase tracking-widest text-xs font-black text-white/65">Importance</label>
                                 <select 
-                                    className="select select-bordered bg-base-100/30 border-white/10 focus:border-primary"
+                                    className="select select-bordered bg-base-100/30 border-white/10 focus:border-primary text-white"
                                     value={manualTask.importance}
                                     onChange={(e) => setManualTask({...manualTask, importance: e.target.value})}
                                 >
@@ -518,10 +518,10 @@ export default function Dashboard() {
                                 </select>
                             </div>
                             <div className="form-control">
-                                <label className="label uppercase tracking-widest text-xs font-black opacity-60">Estimated Time (Min)</label>
+                                <label className="label uppercase tracking-widest text-xs font-black text-white/65">Estimated Time (Min)</label>
                                 <input 
                                     type="number"
-                                    className="input input-bordered bg-base-100/30 border-white/10 focus:border-primary"
+                                    className="input input-bordered bg-base-100/30 border-white/10 focus:border-primary text-white"
                                     value={manualTask.estimatedTime}
                                     onChange={(e) => setManualTask({...manualTask, estimatedTime: e.target.value})}
                                 />
@@ -529,10 +529,10 @@ export default function Dashboard() {
                         </div>
 
                         <div className="form-control">
-                            <label className="label uppercase tracking-widest text-xs font-black opacity-60 font-medium flex gap-2"><Calendar className="w-4 h-4" /> Deadline (Optional)</label>
+                            <label className="label uppercase tracking-widest text-xs font-black text-white/65 font-medium flex gap-2"><Calendar className="w-4 h-4" /> Deadline (Optional)</label>
                             <input 
                                 type="date"
-                                className="input input-bordered bg-base-100/30 border-white/10 focus:border-primary"
+                                className="input input-bordered bg-base-100/30 border-white/10 focus:border-primary text-white"
                                 value={manualTask.deadline}
                                 onChange={(e) => setManualTask({...manualTask, deadline: e.target.value})}
                             />
@@ -540,7 +540,7 @@ export default function Dashboard() {
 
                         <button 
                             type="submit"
-                            className="btn btn-primary btn-block btn-lg rounded-2xl h-16 shadow-lg shadow-primary/20 font-black italic text-xl mt-4"
+                            className="btn btn-primary btn-block btn-lg rounded-2xl h-16 shadow-lg shadow-primary/20 font-black italic text-xl text-white mt-4"
                             disabled={isLoading}
                         >
                             {isLoading ? <Loader2 className="animate-spin" /> : 'INITIALIZE MISSION'}
