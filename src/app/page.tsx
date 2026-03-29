@@ -3,22 +3,21 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import VantaBackground from '@/frontend/components/VantaBackground';
+import SplineBackground from '@/frontend/components/SplineBackground';
 import { useTheme } from '@/frontend/context/ThemeContext';
-import { Sun, Moon, Zap } from 'lucide-react';
+import { Sun, Moon, ArrowRight } from 'lucide-react';
 
 export default function LandingPage() {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden">
-      <VantaBackground />
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-10">
+      <SplineBackground />
       
-      {/* Theme Toggle */}
-      <div className="absolute top-8 right-8 z-10">
+      <div className="absolute top-8 right-8 z-20">
         <button 
           onClick={toggleTheme}
-          className="btn btn-circle btn-ghost bg-base-100/10 backdrop-blur-md border-base-content/10 shadow-xl"
+          className="btn btn-circle btn-ghost border border-white/10 bg-base-100/20 text-white shadow-xl backdrop-blur-md"
         >
           <span suppressHydrationWarning>
             {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5 text-yellow-400" />}
@@ -26,48 +25,50 @@ export default function LandingPage() {
         </button>
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 text-center px-4 max-w-2xl">
+      <div className="relative z-20 mt-auto mb-14 flex w-full max-w-sm flex-col items-center gap-4">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
+          initial={{ opacity: 0, y: 18, scale: 0.96 }}
+          animate={{
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            boxShadow: [
+              '0 18px 40px rgba(30, 64, 175, 0.28)',
+              '0 22px 55px rgba(37, 99, 235, 0.38)',
+              '0 18px 40px rgba(30, 64, 175, 0.28)',
+            ],
+          }}
+          transition={{
+            opacity: { duration: 0.35 },
+            y: { duration: 0.35 },
+            scale: { duration: 0.35 },
+            boxShadow: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' },
+          }}
+          whileHover={{ y: -3, scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="w-full rounded-2xl"
         >
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="bg-primary p-3 rounded-2xl shadow-lg shadow-primary/50">
-              <Zap className="w-8 h-8 text-primary-content fill-current" />
-            </div>
-            <h1 className="text-6xl font-black tracking-tighter text-white">
-              Snowball
-            </h1>
-          </div>
-          
-          <p className="text-xl md:text-2xl text-white/80 mb-10 font-medium leading-relaxed">
-            Stop overthinking. Start doing. 
-            AI-powered micro-tasks that build massive momentum.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link href="/auth/signin">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="btn btn-primary btn-lg px-12 rounded-full text-lg font-bold shadow-2xl shadow-primary/20"
-              >
-                Get Started
-              </motion.button>
-            </Link>
-            
-            <button className="btn btn-ghost hover:bg-white/10 text-white/70 border-white/10 border px-8 rounded-full">
-              How it works
-            </button>
-          </div>
+        <Link
+          href="/auth/signin"
+          className="btn h-14 w-full rounded-2xl border-none bg-blue-600 text-base font-black uppercase tracking-[0.22em] text-white transition-all duration-300 hover:bg-blue-500"
+        >
+          Let&apos;s Do It
+          <motion.span
+            animate={{ x: [0, 4, 0] }}
+            transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+            className="flex items-center"
+          >
+            <ArrowRight className="w-4 h-4" />
+          </motion.span>
+        </Link>
         </motion.div>
-      </div>
 
-      {/* Footer Info */}
-      <div className="absolute bottom-8 text-white/40 text-sm font-medium tracking-widest uppercase">
-        Built for deep focus
+        <Link
+          href="/how-it-works"
+          className="btn h-12 w-full rounded-2xl border border-white/15 bg-base-100/20 px-6 text-sm font-black uppercase tracking-[0.2em] text-white backdrop-blur-md hover:bg-base-100/30"
+        >
+          How It Works
+        </Link>
       </div>
     </main>
   );

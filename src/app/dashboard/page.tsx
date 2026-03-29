@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Zap, CheckCircle, SkipForward, ArrowLeft, Loader2, Trophy, 
   Clock, Sun, Moon, List, PlusCircle, Sparkles, LayoutDashboard,
-  Calendar, AlertCircle
+  Calendar, AlertCircle, Flame, Crosshair, ShieldCheck
 } from 'lucide-react';
 import axios from 'axios';
 import { getPriorityTask, calculatePotentialMomentum } from '@/shared/priorityPipeline';
@@ -51,6 +51,8 @@ export default function Dashboard() {
   const [momentum, setMomentum] = useState(0); 
   const [points, setPoints] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
+  const missionCount = tasks.length;
+  const momentumTier = momentum >= 80 ? 'Overdrive' : momentum >= 45 ? 'Hot Streak' : 'Warmup';
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -186,31 +188,70 @@ export default function Dashboard() {
       <VantaBackground />
       <div className="fixed inset-0 synth-grid pointer-events-none opacity-20 z-0"></div>
 
-      {/* Header */}
-      <header className="relative z-20 flex justify-between items-center p-6 bg-base-100/30 backdrop-blur-md border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary p-2 rounded-lg neon-border-primary">
-            <Zap className="w-5 h-5 text-white fill-current" />
+      <header className="relative z-20 border-b border-white/5 bg-base-100/25 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary p-3 rounded-2xl neon-border-primary">
+                <Zap className="w-6 h-6 text-white fill-current" />
+              </div>
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.35em] text-white/45">Mission Control</p>
+                <span className="font-black text-2xl tracking-tighter neon-text-primary italic">SNOWBALL</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="score-chip px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/45">Points</p>
+                <div className="mt-1 flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-warning" />
+                  <span className="font-black text-lg text-white">{points}</span>
+                </div>
+              </div>
+              <button onClick={toggleTheme} className="btn btn-circle btn-sm btn-ghost border border-white/10 bg-base-100/25 hover:bg-white/10">
+                <span suppressHydrationWarning>
+                  {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                </span>
+              </button>
+            </div>
           </div>
-          <span className="font-black text-2xl tracking-tighter neon-text-primary italic">SNOWBALL</span>
-        </div>
-        
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-warning/10 border border-warning/20">
-            <Trophy className="w-4 h-4 text-warning" />
-            <span className="font-black text-lg text-warning">{points}</span>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="score-chip px-4 py-4">
+              <div className="flex items-center gap-3">
+                <Flame className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/45">Momentum Tier</p>
+                  <p className="text-lg font-black text-white">{momentumTier}</p>
+                </div>
+              </div>
+            </div>
+            <div className="score-chip px-4 py-4">
+              <div className="flex items-center gap-3">
+                <Crosshair className="w-5 h-5 text-secondary" />
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/45">Pending Missions</p>
+                  <p className="text-lg font-black text-white">{missionCount}</p>
+                </div>
+              </div>
+            </div>
+            <div className="score-chip px-4 py-4">
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="w-5 h-5 text-warning" />
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/45">Focus Protocol</p>
+                  <p className="text-lg font-black text-white">Single-task attack</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <button onClick={toggleTheme} className="btn btn-circle btn-sm btn-ghost border border-white/5 hover:bg-white/10">
-            <span suppressHydrationWarning>
-              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-            </span>
-          </button>
         </div>
       </header>
 
       {/* Navigation Tabs */}
       <nav className="relative z-10 flex justify-center mt-8 px-4">
-        <div className="flex bg-base-200/50 backdrop-blur-md p-1 rounded-2xl border border-white/5">
+        <div className="flex bg-base-200/45 backdrop-blur-md p-1.5 rounded-3xl border border-white/10">
           <button 
             onClick={() => setActiveTab('focus')}
             className={`btn btn-sm sm:btn-md gap-2 rounded-xl transition-all duration-300 ${activeTab === 'focus' ? 'btn-primary neon-border-primary' : 'btn-ghost'}`}
@@ -236,19 +277,37 @@ export default function Dashboard() {
       </nav>
 
       {/* Main Content */}
-      <main className="relative z-10 flex-1 flex flex-col items-center p-4 w-full pt-12 overflow-y-auto">
+      <main className="relative z-10 flex-1 flex flex-col items-center p-4 w-full pt-10 overflow-y-auto">
         
-        {/* Momentum Bar */}
-        <div className="w-full max-w-2xl mb-16 px-4 flex flex-col items-center mx-auto">
-          <div className="flex justify-between items-end mb-3 w-full">
-            <span className="text-xs font-black uppercase tracking-[0.3em] opacity-60 neon-text-primary">Momentum Engine</span>
-            <span className="text-sm font-black text-primary">{momentum}%</span>
+        <div className="mission-frame w-full max-w-6xl rounded-[2rem] px-5 py-5 mb-10">
+          <div className="mb-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-white/50">Combat Meter</p>
+              <h2 className="mt-2 text-3xl font-black uppercase tracking-tight text-white sm:text-4xl">
+                Momentum at <span className="neon-text-primary">{momentum}%</span>
+              </h2>
+              <p className="mt-2 text-sm font-medium text-white/60">Every completed task feeds the streak. Skips cool it off.</p>
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="score-chip px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">Rank</p>
+                <p className="mt-1 text-xl font-black text-white">{points}</p>
+              </div>
+              <div className="score-chip px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">Queue</p>
+                <p className="mt-1 text-xl font-black text-white">{missionCount}</p>
+              </div>
+              <div className="score-chip px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">Mode</p>
+                <p className="mt-1 text-xl font-black text-white">{activeTab}</p>
+              </div>
+            </div>
           </div>
-          <div className="h-3 w-full bg-base-100/30 rounded-full overflow-hidden border border-white/5 p-[2px]">
+          <div className="h-5 w-full rounded-full border border-white/10 bg-base-100/40 p-[3px]">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${momentum}%` }}
-              className="h-full bg-gradient-to-r from-primary to-secondary rounded-full shadow-[0_0_15px_rgba(255,0,255,0.6)]"
+              className="h-full rounded-full bg-gradient-to-r from-primary via-blue-500 to-secondary shadow-[0_0_25px_rgba(37,99,235,0.55)]"
             />
           </div>
         </div>
@@ -264,20 +323,22 @@ export default function Dashboard() {
               className="w-full flex flex-col items-center"
             >
               {!currentTask ? (
-                <div className="text-center pt-8">
-                  <h2 className="text-5xl sm:text-7xl font-black mb-6 neon-text-primary italic tracking-tighter uppercase">Stop Thinking.</h2>
-                  <p className="text-xl opacity-60 mb-12 font-medium tracking-widest uppercase">Let the algorithm pick your next move.</p>
+                <div className="w-full max-w-5xl px-4">
+                  <div className="mission-frame rounded-[2.5rem] px-6 py-10 text-center sm:px-10 sm:py-14">
+                  <h2 className="text-5xl sm:text-7xl font-black mb-6 neon-text-primary italic tracking-tighter uppercase">Press Start.</h2>
+                  <p className="text-xl opacity-60 mb-12 font-medium tracking-widest uppercase">Your next best move is one hit away.</p>
                   
                   <button 
                     onClick={handleJustDoIt}
                     className="group relative flex items-center justify-center transform active:scale-95 transition-transform"
                   >
                     <div className="absolute inset-0 bg-primary blur-[80px] opacity-30 group-hover:opacity-50 transition-opacity"></div>
-                    <div className="w-56 h-56 sm:w-72 sm:h-72 rounded-full border-4 border-primary/50 flex flex-col items-center justify-center bg-base-100/40 backdrop-blur-2xl shadow-[0_0_50px_rgba(255,0,255,0.4)] hover:shadow-[0_0_80px_rgba(255,0,255,0.6)] transition-all duration-500 cursor-pointer neon-border-primary ring-8 ring-primary/10">
+                    <div className="hero-orb w-56 h-56 sm:w-72 sm:h-72 rounded-full border-4 border-primary/50 flex flex-col items-center justify-center backdrop-blur-2xl hover:shadow-[0_0_80px_rgba(37,99,235,0.6)] transition-all duration-500 cursor-pointer neon-border-primary ring-8 ring-primary/10">
                         <Zap className="w-14 h-14 sm:w-20 sm:h-20 text-white fill-current mb-2 animate-pulse" />
                         <span className="text-2xl sm:text-4xl font-black tracking-widest text-white italic">JUST DO IT</span>
                     </div>
                   </button>
+                  </div>
                 </div>
               ) : (
                 <motion.div 
@@ -343,7 +404,7 @@ export default function Dashboard() {
             >
                 <div className="flex justify-between items-center mb-8">
                     <h2 className="text-3xl font-black neon-text-primary italic uppercase tracking-tighter">Mission Log</h2>
-                    <span className="badge badge-primary font-black italic">{tasks.length} PENDING</span>
+                    <span className="badge badge-primary font-black italic border-none px-4 py-4">{tasks.length} PENDING</span>
                 </div>
 
                 {tasks.length === 0 ? (
@@ -502,7 +563,7 @@ export default function Dashboard() {
             exit={{ opacity: 0, scale: 1.2 }}
             className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
           >
-            <div className="glass-card text-center p-12 rounded-[3rem] shadow-[0_0_100px_rgba(255,0,255,0.4)] border-primary neon-border-primary">
+            <div className="glass-card text-center p-12 rounded-[3rem] shadow-[0_0_100px_rgba(37,99,235,0.4)] border-primary neon-border-primary">
               <Trophy className="w-20 h-20 text-warning mx-auto mb-6 drop-shadow-[0_0_20px_rgba(255,165,0,0.5)]" />
               <h1 className="text-5xl font-black neon-text-primary italic tracking-tighter mb-2">MOMENTUM CRITICAL!</h1>
               <p className="font-black text-xl uppercase tracking-widest opacity-80">+1 RANK ACHIEVED</p>

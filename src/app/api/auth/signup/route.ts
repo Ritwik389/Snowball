@@ -7,24 +7,27 @@ export async function POST(req: Request) {
   try {
     await dbConnect();
     const { name, email, password } = await req.json();
+    const normalizedName = typeof name === 'string' ? name.trim() : '';
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const normalizedPassword = typeof password === 'string' ? password.trim() : '';
 
-    if (!name || !email || !password) {
+    if (!normalizedName || !normalizedEmail || !normalizedPassword) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
     }
 
     // Check if user already exists
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: normalizedEmail });
     if (userExists) {
       return NextResponse.json({ error: 'User already exists' }, { status: 400 });
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(normalizedPassword, 10);
 
     // Create user
     const user = await User.create({
-      name,
-      email,
+      name: normalizedName,
+      email: normalizedEmail,
       password: hashedPassword,
     });
 

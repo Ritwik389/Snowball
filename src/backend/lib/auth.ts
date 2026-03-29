@@ -6,6 +6,10 @@ import dbConnect from "./mongodb";
 import User from "@/backend/models/User";
 import bcrypt from "bcryptjs";
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: MongoDBAdapter(clientPromise),
   providers: [
@@ -21,16 +25,28 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
+          const normalizedEmail = credentials.email.trim().toLowerCase();
+          const normalizedPassword = credentials.password.trim();
+
+          if (!normalizedEmail || !normalizedPassword) {
+            return null;
+          }
+
           await dbConnect();
 
-          // Find user and include password field which is hidden by default
-          const user = await User.findOne({ email: credentials.email }).select('+password');
+          // Match email case-insensitively so older records still work.
+          const user = await User.findOne({
+            email: {
+              $regex: `^${escapeRegExp(normalizedEmail)}$`,
+              $options: "i",
+            },
+          }).select("+password");
 
           if (!user || !user.password) {
             return null;
           }
 
-          const isPasswordCorrect = await bcrypt.compare(credentials.password, user.password);
+          const isPasswordCorrect = await bcrypt.compare(normalizedPassword, user.password);
 
           if (!isPasswordCorrect) {
             return null;
@@ -48,6 +64,7 @@ export const authOptions: NextAuthOptions = {
       }
     }),
   ],
+  secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
   },

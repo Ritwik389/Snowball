@@ -4,7 +4,7 @@ import React, { useState, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Zap, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
+import { Zap, Mail, Lock, Loader2, ArrowRight, Trophy, ShieldCheck } from 'lucide-react';
 import VantaBackground from '@/frontend/components/VantaBackground';
 
 function SignInForm() {
@@ -25,8 +25,8 @@ function SignInForm() {
 
     try {
       const res = await signIn('credentials', {
-        email,
-        password,
+        email: email.trim().toLowerCase(),
+        password: password.trim(),
         redirect: false,
       });
 
@@ -43,30 +43,61 @@ function SignInForm() {
   };
 
   return (
-    <main className="relative min-h-screen flex items-center justify-center p-4">
+    <main className="relative min-h-screen overflow-hidden px-4 py-10">
       <VantaBackground />
-      
-      <div className="relative z-10 w-full max-w-md">
-        <div className="card bg-base-100/80 backdrop-blur-xl shadow-2xl border border-white/10 p-8 sm:p-12">
-          <div className="flex flex-col items-center mb-8">
-            <div className="bg-primary p-3 rounded-2xl mb-4 shadow-lg shadow-primary/30">
-              <Zap className="w-8 h-8 text-primary-content fill-current" />
+      <div className="fixed inset-0 synth-grid pointer-events-none opacity-20 z-0"></div>
+
+      <div className="relative z-10 mx-auto grid min-h-screen w-full max-w-6xl items-center gap-8 lg:grid-cols-[1fr_460px]">
+        <section className="hidden lg:block text-white">
+          <span className="inline-flex rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.3em] text-white/70">
+            Welcome Back, Operator
+          </span>
+          <h1 className="mt-6 max-w-3xl text-6xl font-black uppercase leading-[0.92] tracking-tight">
+            Lock in.
+            <span className="block neon-text-primary">Stack wins.</span>
+            <span className="block text-white/70">Build momentum.</span>
+          </h1>
+          <p className="mt-6 max-w-xl text-lg font-medium leading-relaxed text-white/72">
+            Your dashboard is built like a game board on purpose. Sign in, pick the next mission, and keep the streak moving.
+          </p>
+
+          <div className="mt-10 grid max-w-2xl grid-cols-2 gap-4">
+            <div className="score-chip p-5">
+              <Trophy className="mb-3 h-5 w-5 text-warning" />
+              <p className="text-xs font-black uppercase tracking-[0.25em] text-white/50">Momentum Rank</p>
+              <p className="mt-2 text-2xl font-black text-white">Earn points fast</p>
             </div>
-            <h1 className="text-3xl font-black tracking-tight">Welcome Back</h1>
-            <p className="text-base-content/60 font-medium tracking-tight">Build your momentum today</p>
+            <div className="score-chip p-5">
+              <ShieldCheck className="mb-3 h-5 w-5 text-secondary" />
+              <p className="text-xs font-black uppercase tracking-[0.25em] text-white/50">Mission Control</p>
+              <p className="mt-2 text-2xl font-black text-white">One task at a time</p>
+            </div>
+          </div>
+        </section>
+
+        <div className="game-shell rounded-[2.25rem] p-8 text-white sm:p-10">
+          <div className="mb-8 flex flex-col items-center text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary shadow-lg shadow-primary/35">
+              <Zap className="w-8 h-8 text-white fill-current" />
+            </div>
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-white/55">Snowball Access</p>
+            <h2 className="mt-3 text-4xl font-black uppercase tracking-tight">Enter The Arena</h2>
+            <p className="mt-3 max-w-sm text-sm font-medium leading-relaxed text-white/65">
+              Use your account to jump back into your mission queue and keep the streak alive.
+            </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="form-control">
-              <label className="label">
-                <span className="label-text font-bold flex items-center gap-2">
+              <label className="label pb-2">
+                <span className="font-bold flex items-center gap-2 text-white/80 uppercase tracking-[0.2em] text-xs">
                   <Mail className="w-4 h-4" /> Email Address
                 </span>
               </label>
               <input 
                 type="email" 
                 placeholder="ritwik@example.com" 
-                className="input input-bordered focus:input-primary bg-base-200/50" 
+                className="input input-bordered h-14 rounded-2xl border-white/10 bg-white/6 text-white placeholder:text-white/30 focus:input-primary" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required 
@@ -74,15 +105,15 @@ function SignInForm() {
             </div>
 
             <div className="form-control">
-              <label className="label">
-                <span className="label-text font-bold flex items-center gap-2">
+              <label className="label pb-2">
+                <span className="font-bold flex items-center gap-2 text-white/80 uppercase tracking-[0.2em] text-xs">
                   <Lock className="w-4 h-4" /> Password
                 </span>
               </label>
               <input 
                 type="password" 
                 placeholder="••••••••" 
-                className="input input-bordered focus:input-primary bg-base-200/50" 
+                className="input input-bordered h-14 rounded-2xl border-white/10 bg-white/6 text-white placeholder:text-white/30 focus:input-primary" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required 
@@ -103,17 +134,17 @@ function SignInForm() {
 
             <button 
               type="submit" 
-              className="btn btn-primary btn-block h-14 rounded-xl text-lg font-bold shadow-lg shadow-primary/20"
+              className="btn btn-primary btn-block mt-2 h-16 rounded-2xl text-base font-black uppercase tracking-[0.25em] shadow-2xl shadow-primary/25"
               disabled={loading}
             >
-              {loading ? <Loader2 className="animate-spin" /> : 'Sign In'}
+              {loading ? <Loader2 className="animate-spin" /> : 'Launch Dashboard'}
             </button>
           </form>
 
-          <div className="mt-8 text-center text-sm font-medium opacity-50">
+          <div className="mt-8 text-center text-sm font-medium text-white/55">
             New here? 
-            <Link href="/auth/signup" className="text-primary ml-1 hover:underline inline-flex items-center">
-              Create an Account <ArrowRight className="w-3 h-3 ml-1" />
+            <Link href="/auth/signup" className="text-primary ml-2 inline-flex items-center font-black uppercase tracking-[0.18em] hover:underline">
+              Create Account <ArrowRight className="w-3 h-3 ml-1" />
             </Link>
           </div>
         </div>
