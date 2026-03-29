@@ -23,8 +23,12 @@ export default function SignUpPage() {
     try {
       await axios.post('/api/auth/signup', { name, email, password });
       router.push('/auth/signin?success=Account created! Please sign in.');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to create account.');
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.error || 'Failed to create account.');
+      } else {
+        setError('Failed to create account.');
+      }
       setLoading(false);
     }
   };

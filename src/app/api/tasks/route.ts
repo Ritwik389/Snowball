@@ -10,14 +10,20 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const userId = (session.user as { id?: string }).id;
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   await dbConnect();
   try {
     const tasks = await Task.find({ 
-      userId: (session.user as any).id,
+      userId,
       status: 'pending' 
     }).sort({ createdAt: -1 });
     return NextResponse.json({ tasks });
   } catch (error) {
+    console.error('Task Fetch Error:', error);
     return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 });
   }
 }
@@ -28,18 +34,30 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { title, description, importance, urgency, estimatedTime, deadline } = await req.json();
+  const userId = (session.user as { id?: string }).id;
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const body = (await req.json()) as {
+    title?: string;
+    description?: string;
+    importance?: string | number;
+    urgency?: string | number;
+    estimatedTime?: string | number;
+    deadline?: string;
+  };
   
   await dbConnect();
   try {
     const task = await Task.create({
-      userId: (session.user as any).id,
-      title,
-      description,
-      importance: parseInt(importance),
-      urgency: parseInt(urgency),
-      estimatedTime: parseInt(estimatedTime),
-      deadline: deadline ? new Date(deadline) : null,
+      userId,
+      title: body.title,
+      description: body.description,
+      importance: body.importance !== undefined ? parseInt(String(body.importance), 10) : 0,
+      urgency: body.urgency !== undefined ? parseInt(String(body.urgency), 10) : 0,
+      estimatedTime: body.estimatedTime !== undefined ? parseInt(String(body.estimatedTime), 10) : 0,
+      deadline: body.deadline ? new Date(body.deadline) : null,
       status: 'pending'
     });
     return NextResponse.json({ task });
@@ -55,17 +73,23 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id, status } = await req.json();
+  const userId = (session.user as { id?: string }).id;
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const body = (await req.json()) as { id?: string; status?: string };
   
   await dbConnect();
   try {
     const task = await Task.findOneAndUpdate(
-      { _id: id, userId: (session.user as any).id },
-      { status },
+      { _id: body.id, userId },
+      { status: body.status },
       { new: true }
     );
     return NextResponse.json({ task });
   } catch (error) {
+    console.error('Task Update Error:', error);
     return NextResponse.json({ error: 'Failed to update task' }, { status: 500 });
   }
 }

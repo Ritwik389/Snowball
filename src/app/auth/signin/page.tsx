@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -14,18 +14,14 @@ function SignInForm() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-
-  useEffect(() => {
-    const msg = searchParams.get('success');
-    if (msg) setSuccess(msg);
-  }, [searchParams]);
+  const [successOverride, setSuccessOverride] = useState<string | null>(null);
+  const success = successOverride ?? searchParams.get('success') ?? '';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setSuccess('');
+    setSuccessOverride('');
 
     try {
       const res = await signIn('credentials', {
@@ -40,7 +36,7 @@ function SignInForm() {
       } else {
         router.push('/dashboard');
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred. Please try again.');
       setLoading(false);
     }

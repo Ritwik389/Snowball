@@ -20,7 +20,9 @@ export default function LandingPage() {
           onClick={toggleTheme}
           className="btn btn-circle btn-ghost bg-base-100/10 backdrop-blur-md border-base-content/10 shadow-xl"
         >
-          {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5 text-yellow-400" />}
+          <span suppressHydrationWarning>
+            {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5 text-yellow-400" />}
+          </span>
         </button>
       </div>
 

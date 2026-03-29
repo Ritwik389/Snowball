@@ -8,6 +8,27 @@ import { ratelimit } from "@/backend/lib/ratelimit";
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || "");
 
+type GeneratedTask = {
+  title: string;
+  estimated_time_minutes: number;
+  urgency_score: number;
+  importance_score: number;
+};
+
+function isGeneratedTaskArray(value: unknown): value is GeneratedTask[] {
+  if (!Array.isArray(value)) return false;
+  return value.every((item) => {
+    if (typeof item !== "object" || item === null) return false;
+    const record = item as Record<string, unknown>;
+    return (
+      typeof record.title === "string" &&
+      typeof record.estimated_time_minutes === "number" &&
+      typeof record.urgency_score === "number" &&
+      typeof record.importance_score === "number"
+    );
+  });
+}
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -31,7 +52,7 @@ export async function POST(req: Request) {
     }
 
     // 3. Call Gemini
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const prompt = `
       You are an expert productivity coach. 
@@ -53,14 +74,23 @@ export async function POST(req: Request) {
     
     // Clean JSON if needed (Gemini sometimes adds markdown blocks)
     const jsonString = text.replace(/```json|```/g, "").trim();
-    const generatedTasks = JSON.parse(jsonString);
+    const parsed = JSON.parse(jsonString) as unknown;
+    if (!isGeneratedTaskArray(parsed)) {
+      return NextResponse.json({ error: "Invalid AI response format" }, { status: 502 });
+    }
+    const generatedTasks = parsed;
 
     // 4. Save to Database
     await dbConnect();
+    const userId = (session.user as { id?: string }).id;
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const savedTasks = await Promise.all(
-      generatedTasks.map((task: any) => 
+      generatedTasks.map((task) =>
         Task.create({
-          userId: (session.user as any).id,
+          userId,
           title: task.title,
           estimatedTime: task.estimated_time_minutes,
           urgency: task.urgency_score,
@@ -71,7 +101,7 @@ export async function POST(req: Request) {
     );
 
     return NextResponse.json({ tasks: savedTasks });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Gemini API Error:", error);
     return NextResponse.json({ error: "Failed to generate tasks" }, { status: 500 });
   }

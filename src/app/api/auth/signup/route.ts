@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ message: 'User created successfully', userId: user._id }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Registration Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

@@ -20,26 +20,31 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        await dbConnect();
-        
-        // Find user and include password field which is hidden by default
-        const user = await User.findOne({ email: credentials.email }).select('+password');
-        
-        if (!user || !user.password) {
-          return null;
-        }
+        try {
+          await dbConnect();
 
-        const isPasswordCorrect = await bcrypt.compare(credentials.password, user.password);
-        
-        if (!isPasswordCorrect) {
-          return null;
-        }
+          // Find user and include password field which is hidden by default
+          const user = await User.findOne({ email: credentials.email }).select('+password');
 
-        return {
-          id: user._id.toString(),
-          name: user.name,
-          email: user.email,
-        };
+          if (!user || !user.password) {
+            return null;
+          }
+
+          const isPasswordCorrect = await bcrypt.compare(credentials.password, user.password);
+
+          if (!isPasswordCorrect) {
+            return null;
+          }
+
+          return {
+            id: user._id.toString(),
+            name: user.name,
+            email: user.email,
+          };
+        } catch (err) {
+          console.error("[auth] Credentials authorize failed:", err);
+          throw err;
+        }
       }
     }),
   ],
@@ -49,10 +54,22 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: '/auth/signin',
   },
+  logger: {
+    error(code, metadata) {
+      console.error("[next-auth] Error:", code, metadata);
+    },
+    warn(code) {
+      console.warn("[next-auth] Warn:", code);
+    },
+    debug(code, metadata) {
+      console.debug("[next-auth] Debug:", code, metadata);
+    },
+  },
   callbacks: {
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.sub;
+        const user = session.user as typeof session.user & { id?: string };
+        user.id = token.sub ?? undefined;
       }
       return session;
     },

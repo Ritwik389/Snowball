@@ -14,16 +14,27 @@ import { getPriorityTask, calculatePotentialMomentum } from '@/shared/priorityPi
 import { useTheme } from '@/frontend/context/ThemeContext';
 import VantaBackground from '@/frontend/components/VantaBackground';
 
+type TaskItem = {
+  _id: string;
+  title: string;
+  description?: string;
+  estimatedTime: number;
+  urgency?: number;
+  importance?: number;
+  status?: string;
+  createdAt?: string;
+};
+
 export default function Dashboard() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
 
   // App State
   const [activeTab, setActiveTab] = useState<'focus' | 'tasks' | 'create'>('focus');
   const [isLoading, setIsLoading] = useState(true);
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [currentTask, setCurrentTask] = useState<any | null>(null);
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [currentTask, setCurrentTask] = useState<TaskItem | null>(null);
   
   // Creation State
   const [creationMode, setCreationMode] = useState<'ai' | 'manual'>('ai');
@@ -44,7 +55,8 @@ export default function Dashboard() {
   const fetchTasks = useCallback(async () => {
     try {
       const { data } = await axios.get('/api/tasks');
-      setTasks(data.tasks);
+      const nextTasks = Array.isArray(data.tasks) ? (data.tasks as TaskItem[]) : [];
+      setTasks(nextTasks);
     } catch (err) {
       console.error('Failed to fetch tasks', err);
     } finally {
@@ -115,30 +127,32 @@ export default function Dashboard() {
     }
     // Use the algorithm to find the best task
     // Mapping our DB tasks to the SubTask type expected by the pipeline
-    const mappedTasks = tasks.map(t => ({
+    const mappedTasks = tasks.map((t) => ({
       id: t._id,
       title: t.title,
       estimated_time_minutes: t.estimatedTime,
-      urgency_score: t.urgency || 5,
-      importance_score: t.importance || 5
+      urgency_score: t.urgency ?? 5,
+      importance_score: t.importance ?? 5
     }));
 
     const bestTaskData = getPriorityTask(mappedTasks, 999); // No time limit for "Just Do It"
     if (bestTaskData) {
-      const actualTask = tasks.find(t => t._id === bestTaskData.id);
-      setCurrentTask(actualTask);
+      const actualTask = tasks.find((t) => t._id === bestTaskData.id);
+      if (actualTask) {
+        setCurrentTask(actualTask);
+      }
     }
   };
 
-  const markDone = async (task: any) => {
+  const markDone = async (task: TaskItem) => {
     try {
       await axios.patch('/api/tasks', { id: task._id, status: 'done' });
       const gain = calculatePotentialMomentum({
         id: task._id,
         title: task.title,
         estimated_time_minutes: task.estimatedTime,
-        urgency_score: task.urgency || 5,
-        importance_score: task.importance || 5
+        urgency_score: task.urgency ?? 5,
+        importance_score: task.importance ?? 5
       });
       setMomentum(m => Math.min(100, m + gain));
       setCurrentTask(null);
@@ -148,7 +162,7 @@ export default function Dashboard() {
     }
   };
 
-  const skipTask = async (task: any) => {
+  const skipTask = async (task: TaskItem) => {
     try {
       await axios.patch('/api/tasks', { id: task._id, status: 'skipped' });
       setMomentum(m => Math.max(0, m - 5));
@@ -187,7 +201,9 @@ export default function Dashboard() {
             <span className="font-black text-lg text-warning">{points}</span>
           </div>
           <button onClick={toggleTheme} className="btn btn-circle btn-sm btn-ghost border border-white/5 hover:bg-white/10">
-            {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+            <span suppressHydrationWarning>
+              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+            </span>
           </button>
         </div>
       </header>

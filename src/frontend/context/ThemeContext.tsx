@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useSyncExternalStore } from 'react';
 
 type Theme = 'light' | 'synthwave';
 
@@ -11,24 +11,46 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [theme, setTheme] = useState<Theme>('synthwave');
+const THEME_KEY = 'snowball-theme';
+const DEFAULT_THEME: Theme = 'synthwave';
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('snowball-theme') as Theme;
-    if (savedTheme) {
-      setTheme(savedTheme);
+const themeStore = {
+  listeners: new Set<() => void>(),
+  getSnapshot(): Theme {
+    if (typeof window === 'undefined') return DEFAULT_THEME;
+    const saved = localStorage.getItem(THEME_KEY) as Theme | null;
+    return saved ?? DEFAULT_THEME;
+  },
+  getServerSnapshot(): Theme {
+    return DEFAULT_THEME;
+  },
+  setTheme(next: Theme) {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(THEME_KEY, next);
     }
-  }, []);
+    this.listeners.forEach((listener) => listener());
+  },
+  subscribe(listener: () => void) {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  },
+};
+
+export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
+  const theme = useSyncExternalStore(
+    themeStore.subscribe.bind(themeStore),
+    themeStore.getSnapshot.bind(themeStore),
+    themeStore.getServerSnapshot.bind(themeStore)
+  );
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     document.documentElement.className = theme; // Also set class for Tailwind dark variant
-    localStorage.setItem('snowball-theme', theme);
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === 'light' ? 'synthwave' : 'light'));
+    const next = theme === 'light' ? 'synthwave' : 'light';
+    themeStore.setTheme(next);
   };
 
   return (

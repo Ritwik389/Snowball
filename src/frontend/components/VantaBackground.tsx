@@ -1,20 +1,24 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-// @ts-ignore
+// @ts-expect-error vanta has no types
 import FOG from 'vanta/dist/vanta.fog.min';
+
+type VantaEffect = {
+  destroy: () => void;
+};
 
 const VantaBackground = () => {
   const vantaRef = useRef<HTMLDivElement>(null);
-  const vantaEffectRef = useRef<any>(null);
+  const vantaEffectRef = useRef<VantaEffect | null>(null);
 
   useEffect(() => {
     const vantaEl = vantaRef.current;
     
     if (vantaEl && !vantaEffectRef.current) {
         // Vanta needs THREE on the window object
-        (window as any).THREE = THREE;
+        (window as Window & { THREE?: typeof THREE }).THREE = THREE;
         
         try {
             vantaEffectRef.current = FOG({
