@@ -1,12 +1,9 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/backend/lib/auth";
 import dbConnect from "@/backend/lib/mongodb";
 import Task from "@/backend/models/Task";
 import { ratelimit } from "@/backend/lib/ratelimit";
-
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || "");
 
 type GeneratedTask = {
   title: string;
@@ -36,6 +33,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const groqApiKey = process.env.GROQ_API_KEY;
+    if (!groqApiKey) {
+      return NextResponse.json({ error: "Missing GROQ_API_KEY" }, { status: 500 });
+    }
+
     // 1. Check Rate Limit
     if (ratelimit) {
       const ip = req.headers.get("x-forwarded-for") ?? "127.0.0.1";
@@ -51,9 +53,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Goal is required" }, { status: 400 });
     }
 
-    // 3. Call Gemini
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
     const prompt = `
       You are an expert productivity coach. 
       The user has a vague, overwhelming goal: "${goal}".
@@ -68,11 +67,34 @@ export async function POST(req: Request) {
       Return ONLY a JSON array of objects with these keys. No other text.
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    // 3. Call Groq (OpenAI-compatible)
+    const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${groqApiKey}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages: [
+          { role: "system", content: "You return only valid JSON. No markdown." },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.4,
+      }),
+    });
+
+    if (!groqResponse.ok) {
+      const errText = await groqResponse.text();
+      throw new Error(`Groq API error: ${groqResponse.status} ${errText}`);
+    }
+
+    const groqData = (await groqResponse.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const text = groqData.choices?.[0]?.message?.content ?? "";
     
-    // Clean JSON if needed (Gemini sometimes adds markdown blocks)
+    // Clean JSON if needed (LLMs sometimes add markdown blocks)
     const jsonString = text.replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(jsonString) as unknown;
     if (!isGeneratedTaskArray(parsed)) {
