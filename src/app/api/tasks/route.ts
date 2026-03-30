@@ -4,7 +4,7 @@ import { authOptions } from '@/backend/lib/auth';
 import dbConnect from '@/backend/lib/mongodb';
 import Task from '@/backend/models/Task';
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -15,11 +15,14 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const { searchParams } = new URL(req.url);
+  const status = searchParams.get('status') || 'pending';
+
   await dbConnect();
   try {
     const tasks = await Task.find({ 
       userId,
-      status: 'pending' 
+      status 
     }).sort({ createdAt: -1 });
     return NextResponse.json({ tasks });
   } catch (error) {

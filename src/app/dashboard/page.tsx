@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,6 +14,18 @@ import { getPriorityTask, calculatePotentialMomentum } from '@/shared/priorityPi
 import { getCurrentBadge, getProgressToNextBadge, BADGES } from '@/shared/badges';
 import { useTheme } from '@/frontend/context/ThemeContext';
 import VantaBackground from '@/frontend/components/VantaBackground';
+
+// Debounce utility
+const debounce = <T extends any[]>(
+  fn: (...args: T) => Promise<void>,
+  delay: number
+) => {
+  let timeoutId: NodeJS.Timeout;
+  return async (...args: T) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+};
 
 type GeneratedTask = {
   title: string;
@@ -45,6 +57,8 @@ export default function Dashboard() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [currentTask, setCurrentTask] = useState<TaskItem | null>(null);
   const [availableTime, setAvailableTime] = useState(180); // 3 hours in minutes
+  const momentumRef = useRef(0);
+  const pointsRef = useRef(0);
   
   // Creation State
   const [creationMode, setCreationMode] = useState<'ai' | 'manual'>('ai');
@@ -72,7 +86,7 @@ export default function Dashboard() {
 
   const fetchTasks = useCallback(async () => {
     try {
-      const { data } = await axios.get('/api/tasks');
+      const { data } = await axios.get('/api/tasks?status=pending');
       const nextTasks = Array.isArray(data.tasks) ? (data.tasks as TaskItem[]) : [];
       setTasks(nextTasks);
     } catch (err) {
@@ -82,18 +96,32 @@ export default function Dashboard() {
     }
   }, []);
 
+
+
   const fetchUserData = useCallback(async () => {
     try {
       const { data } = await axios.get('/api/user');
-      setMomentum(data.momentum || 0);
-      setPoints(data.points || 0);
+      const momentum = data.momentum || 0;
+      const points = data.points || 0;
+      setMomentum(momentum);
+      setPoints(points);
+      momentumRef.current = momentum;
+      pointsRef.current = points;
     } catch (err) {
       console.error('Failed to fetch user data', err);
       // Fallback to localStorage if API fails
       const savedMomentum = localStorage.getItem('snowball-momentum');
       const savedPoints = localStorage.getItem('snowball-points');
-      if (savedMomentum) setMomentum(parseInt(savedMomentum));
-      if (savedPoints) setPoints(parseInt(savedPoints));
+      if (savedMomentum) {
+        const m = parseInt(savedMomentum);
+        setMomentum(m);
+        momentumRef.current = m;
+      }
+      if (savedPoints) {
+        const p = parseInt(savedPoints);
+        setPoints(p);
+        pointsRef.current = p;
+      }
     }
   }, []);
 
@@ -106,27 +134,37 @@ export default function Dashboard() {
     }
   }, [status, router, fetchTasks, fetchUserData]);
 
-  useEffect(() => {
-    const updateUserData = async () => {
+  // Debounced update function
+  const debouncedUpdateUserData = useRef(
+    debounce(async (m: number, p: number) => {
       try {
-        await axios.patch('/api/user', { momentum, points });
+        await axios.patch('/api/user', { momentum: m, points: p });
       } catch (err) {
         console.error('Failed to update user data', err);
         // Fallback to localStorage if API fails
-        localStorage.setItem('snowball-momentum', momentum.toString());
-        localStorage.setItem('snowball-points', points.toString());
+        localStorage.setItem('snowball-momentum', m.toString());
+        localStorage.setItem('snowball-points', p.toString());
       }
-    };
+    }, 500)
+  ).current;
 
-    updateUserData();
-    
+  useEffect(() => {
+    // Handle momentum conversion to points
     if (momentum >= 100) {
-      setPoints(p => p + 1);
+      const newPoints = pointsRef.current + 1;
+      setPoints(newPoints);
+      pointsRef.current = newPoints;
       setMomentum(0);
+      momentumRef.current = 0;
       setShowCelebration(true);
       setTimeout(() => setShowCelebration(false), 3000);
+      // Save the reset momentum and new points
+      debouncedUpdateUserData(0, newPoints);
+    } else {
+      // Normal save
+      debouncedUpdateUserData(momentum, points);
     }
-  }, [momentum, points]);
+  }, [momentum, points, debouncedUpdateUserData]);
 
   // Check for badge unlocks
   useEffect(() => {
@@ -255,7 +293,15 @@ export default function Dashboard() {
         urgency_score: task.urgency ?? 5,
         importance_score: task.importance ?? 5
       });
-      setMomentum(m => Math.min(100, m + gain));
+      
+      // Calculate new momentum
+      const newMomentum = Math.min(100, momentumRef.current + gain);
+      momentumRef.current = newMomentum;
+      setMomentum(newMomentum);
+      
+      // Explicitly save to database immediately
+      await axios.patch('/api/user', { momentum: newMomentum, points: pointsRef.current });
+      
       setCurrentTask(null);
       await fetchTasks();
     } catch (err) {
@@ -266,7 +312,13 @@ export default function Dashboard() {
   const skipTask = async (task: TaskItem) => {
     try {
       await axios.patch('/api/tasks', { id: task._id, status: 'skipped' });
-      setMomentum(m => Math.max(0, m - 5));
+      const newMomentum = Math.max(0, momentumRef.current - 5);
+      momentumRef.current = newMomentum;
+      setMomentum(newMomentum);
+      
+      // Explicitly save to database immediately
+      await axios.patch('/api/user', { momentum: newMomentum, points: pointsRef.current });
+      
       setCurrentTask(null);
       await fetchTasks();
     } catch (err) {
@@ -302,9 +354,9 @@ export default function Dashboard() {
 
             <div className="flex items-center gap-3">
               <div className="score-chip px-4 py-3">
-                <p className={`text-[10px] font-black uppercase tracking-[0.25em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>{currentBadge.name}</p>
+                <p className={`text-[10px] font-black uppercase tracking-[0.25em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>Points</p>
                 <div className="mt-1 flex items-center gap-2">
-                  <span className="text-2xl">{currentBadge.icon}</span>
+                  <Trophy className="w-4 h-4 text-warning" />
                   <span className={`font-black text-lg ${theme === 'light' ? 'text-black' : 'text-white'}`}>{points}</span>
                 </div>
               </div>
@@ -316,7 +368,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             <div className="score-chip px-4 py-4">
               <div className="flex items-center gap-3">
                 <Flame className="w-5 h-5 text-primary" />
@@ -332,6 +384,18 @@ export default function Dashboard() {
                 <div>
                   <p className={`text-[10px] font-black uppercase tracking-[0.25em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>Pending Missions</p>
                   <p className={`text-lg font-black ${theme === 'light' ? 'text-black' : 'text-white'}`}>{missionCount}</p>
+                </div>
+              </div>
+            </div>
+            <div className="score-chip px-4 py-4">
+              <div className="flex items-center gap-3">
+                <Trophy className="w-5 h-5 text-warning" />
+                <div>
+                  <p className={`text-[10px] font-black uppercase tracking-[0.25em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>Badge</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-xl">{currentBadge.icon}</span>
+                    <span className={`text-lg font-black ${theme === 'light' ? 'text-black' : 'text-white'}`}>{currentBadge.name}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -716,7 +780,8 @@ export default function Dashboard() {
                             <label className={`label uppercase tracking-widest text-xs font-black ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}>Task Title</label>
                             <input 
                                 required
-                                className={`input input-bordered ${theme === 'light' ? 'bg-black/80 border-black/10 text-black placeholder:text-black/35' : 'bg-base-100/80 border-white/10 text-white placeholder:text-white/35'} focus:border-primary text-lg`}
+                                placeholder="Write a concise task name"
+                                className={`input input-bordered ${theme === 'light' ? 'bg-white/90 border-black/15 text-black placeholder:text-black/45' : 'bg-base-100/80 border-white/10 text-white placeholder:text-white/35'} focus:border-primary text-lg`}
                                 value={manualTask.title}
                                 onChange={(e) => setManualTask({...manualTask, title: e.target.value})}
                             />
@@ -726,7 +791,7 @@ export default function Dashboard() {
                             <div className="form-control">
                                 <label className={`label uppercase tracking-widest text-xs font-black ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}>Importance</label>
                                 <select 
-                                    className={`select select-bordered ${theme === 'light' ? 'bg-black/90 border-black/10 text-black' : 'bg-base-100/90 border-white/10 text-white'} focus:border-primary`}
+                                    className={`select select-bordered ${theme === 'light' ? 'bg-white/90 border-black/15 text-black' : 'bg-base-100/90 border-white/10 text-white'} focus:border-primary`}
                                     value={manualTask.importance}
                                     onChange={(e) => setManualTask({...manualTask, importance: e.target.value})}
                                 >
@@ -740,7 +805,7 @@ export default function Dashboard() {
                                 <label className={`label uppercase tracking-widest text-xs font-black ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}>Estimated Time (Min)</label>
                                 <input 
                                     type="number"
-                                    className={`input input-bordered ${theme === 'light' ? 'bg-black/80 border-black/10 text-black' : 'bg-base-100/80 border-white/10 text-white'} focus:border-primary`}
+                                    className={`input input-bordered ${theme === 'light' ? 'bg-white/90 border-black/15 text-black placeholder:text-black/45' : 'bg-base-100/80 border-white/10 text-white placeholder:text-white/35'} focus:border-primary`}
                                     value={manualTask.estimatedTime}
                                     onChange={(e) => setManualTask({...manualTask, estimatedTime: e.target.value})}
                                 />
@@ -751,7 +816,7 @@ export default function Dashboard() {
                             <label className={`label uppercase tracking-widest text-xs font-black font-medium flex gap-2 ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}><Calendar className="w-4 h-4" /> Deadline</label>
                             <input 
                                 type="date"
-                                className={`input input-bordered ${theme === 'light' ? 'bg-black/80 border-black/10 text-black' : 'bg-base-100/80 border-white/10 text-white'} focus:border-primary`}
+                                className={`input input-bordered ${theme === 'light' ? 'bg-white/90 border-black/15 text-black placeholder:text-black/45' : 'bg-base-100/80 border-white/10 text-white placeholder:text-white/35'} focus:border-primary`}
                                 value={manualTask.deadline}
                                 onChange={(e) => setManualTask({...manualTask, deadline: e.target.value})}
                                 required

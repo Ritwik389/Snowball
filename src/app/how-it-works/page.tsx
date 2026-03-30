@@ -8,9 +8,9 @@ import { ArrowLeft, ArrowRight, Brain, ListTodo, Zap, Sun, Moon } from 'lucide-r
 const steps = [
   {
     icon: Brain,
-    title: 'Drop The Goal',
+    title: 'Make your list',
     description:
-      'Bring Snowball the messy version: the big goal, the overwhelming project, or the thing you have been avoiding.',
+      'Bring Snowball the messy version: the big goals, the overwhelming project, the thing you have been avoiding.',
   },
   {
     icon: ListTodo,
