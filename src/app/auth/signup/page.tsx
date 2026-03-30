@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Zap, Mail, Lock, User, Loader2, ArrowRight, Sun, Moon } from 'lucide-react';
+import { Zap, Mail, Lock, User, Loader2, ArrowRight, Sun, Moon, Trophy, ShieldCheck } from 'lucide-react';
 import VantaBackground from '@/frontend/components/VantaBackground';
 import { useTheme } from '@/frontend/context/ThemeContext';
 import axios from 'axios';
@@ -36,9 +36,10 @@ export default function SignUpPage() {
   };
 
   return (
-    <main className="relative min-h-screen flex items-center justify-center p-4">
+    <main className="relative min-h-screen overflow-hidden px-4 py-10">
       <VantaBackground />
-      
+      <div className="fixed inset-0 synth-grid pointer-events-none opacity-20 z-0"></div>
+
       {/* Theme Toggle Button */}
       <button
         onClick={toggleTheme}
@@ -51,15 +52,46 @@ export default function SignUpPage() {
           <Sun className="w-5 h-5 text-white" />
         )}
       </button>
-      
-      <div className="relative z-10 w-full max-w-md">
-        <div className={`card rounded-[2.25rem] shadow-2xl p-8 sm:p-12 ${theme === 'light' ? 'bg-white/90 text-black border border-black/10' : 'bg-base-100/80 text-white border border-white/10'} backdrop-blur-xl`}>
-          <div className="flex flex-col items-center mb-8">
-            <div className="bg-primary p-3 rounded-2xl mb-4 shadow-lg shadow-primary/30">
+
+      <div className="relative z-10 mx-auto grid min-h-screen w-full max-w-6xl items-center gap-8 lg:grid-cols-[1fr_460px]">
+        <section className={`hidden lg:block ${theme === 'light' ? 'text-black' : 'text-white'}`}>
+          <span className={`inline-flex rounded-full border ${theme === 'light' ? 'border-black/10 bg-black/5 text-black/60' : 'border-white/10 bg-white/10 text-white/70'} px-4 py-2 text-xs font-black uppercase tracking-[0.3em]`}>
+            Welcome Aboard, Operator
+          </span>
+          <h1 className={`mt-6 max-w-3xl text-6xl font-black uppercase leading-[0.92] tracking-tight ${theme === 'light' ? 'text-black' : 'text-white'}`}>
+            Join the mission.
+            <span className="block neon-text-primary">Break it down.</span>
+            <span className={`block ${theme === 'light' ? 'text-black/50' : 'text-white/70'}`}>Build momentum.</span>
+          </h1>
+          <p className={`mt-6 max-w-xl text-lg font-medium leading-relaxed ${theme === 'light' ? 'text-black/70' : 'text-white/72'}`}>
+            Your journey starts here. Create your account, set your first goal, and begin stacking wins that compound over time.
+          </p>
+
+          <div className="mt-10 grid max-w-2xl grid-cols-2 gap-4">
+            <div className={`score-chip p-5 ${theme === 'light' ? 'bg-black/5 border border-black/10' : 'bg-white/5 border border-white/10'}`}>
+              <Trophy className="mb-3 h-5 w-5 text-warning" />
+              <p className={`text-xs font-black uppercase tracking-[0.25em] ${theme === 'light' ? 'text-black/50' : 'text-white/50'}`}>Momentum Rank</p>
+              <p className={`mt-2 text-2xl font-black ${theme === 'light' ? 'text-black' : 'text-white'}`}>Earn points fast</p>
+            </div>
+            <div className={`score-chip p-5 ${theme === 'light' ? 'bg-black/5 border border-black/10' : 'bg-white/5 border border-white/10'}`}>
+              <ShieldCheck className="mb-3 h-5 w-5 text-secondary" />
+              <p className={`text-xs font-black uppercase tracking-[0.25em] ${theme === 'light' ? 'text-black/50' : 'text-white/50'}`}>Mission Control</p>
+              <p className={`mt-2 text-2xl font-black ${theme === 'light' ? 'text-black' : 'text-white'}`}>One task at a time</p>
+            </div>
+          </div>
+        </section>
+
+        <div className={`game-shell rounded-[2.25rem] p-8 sm:p-10 ${theme === 'light' ? 'bg-white/80 text-black border border-black/10' : 'bg-black/20 text-white border border-white/10'}`}>
+          <div className="mb-8 flex flex-col items-center text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary shadow-lg shadow-primary/35">
               <Zap className="w-8 h-8 text-primary-content fill-current" />
             </div>
-            <h1 className={`text-3xl font-black tracking-tight ${theme === 'light' ? 'text-black' : 'text-white'}`}>Join Snowball</h1>
-            <p className={`font-medium text-center ${theme === 'light' ? 'text-black/70' : 'text-white/70'}`}>Break down your goals, build your legacy.</p>
+            <p className={`text-xs font-black uppercase tracking-[0.3em] ${theme === 'light' ? 'text-black/55' : 'text-white/55'}`}>Snowball Access</p>
+            <h2 className={`mt-3 text-4xl font-black uppercase tracking-tight ${theme === 'light' ? 'text-black' : 'text-white'}`}>Join The Arena</h2>
+            <p className={`font-medium text-center mt-2 ${theme === 'light' ? 'text-black/70' : 'text-white/70'}`}>Break down your goals, build your legacy.</p>
+            <p className={`mt-3 max-w-sm text-sm font-medium leading-relaxed ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}>
+              Create your account and start your momentum-building journey today.
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -71,8 +103,8 @@ export default function SignUpPage() {
               </label>
               <input 
                 type="text" 
-                placeholder="Ritwik Jain" 
-                className={`input input-bordered focus:input-primary ${theme === 'light' ? 'bg-black/5 text-black placeholder:text-black/35 border-black/10' : 'bg-base-200/50 text-white placeholder:text-white/35'}`}
+                placeholder="Name" 
+                className={`input input-bordered focus:input-primary ${theme === 'light' ? 'border-black/10 bg-white/90 text-black placeholder:text-black/40' : 'bg-base-200/50 text-white placeholder:text-white/35'}`}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required 
@@ -88,7 +120,7 @@ export default function SignUpPage() {
               <input 
                 type="email" 
                 placeholder="ritwik@example.com" 
-                className={`input input-bordered focus:input-primary ${theme === 'light' ? 'bg-black/5 text-black placeholder:text-black/35 border-black/10' : 'bg-base-200/50 text-white placeholder:text-white/35'}`}
+                className={`input input-bordered focus:input-primary ${theme === 'light' ? 'bg-black/80 border-black/10 text-white placeholder:text-white/35' : 'bg-base-200/50 text-white placeholder:text-white/35'}`}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required 
@@ -104,7 +136,7 @@ export default function SignUpPage() {
               <input 
                 type="password" 
                 placeholder="••••••••" 
-                className={`input input-bordered focus:input-primary ${theme === 'light' ? 'bg-black/5 text-black placeholder:text-black/35 border-black/10' : 'bg-base-200/50 text-white placeholder:text-white/35'}`}
+                className={`input input-bordered focus:input-primary ${theme === 'light' ? 'bg-black/80 border-black/10 text-white placeholder:text-white/35' : 'bg-base-200/50 text-white placeholder:text-white/35'}`}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required 

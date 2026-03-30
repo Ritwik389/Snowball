@@ -102,27 +102,9 @@ export async function POST(req: Request) {
     }
     const generatedTasks = parsed;
 
-    // 4. Save to Database
-    await dbConnect();
-    const userId = (session.user as { id?: string }).id;
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const savedTasks = await Promise.all(
-      generatedTasks.map((task) =>
-        Task.create({
-          userId,
-          title: task.title,
-          estimatedTime: task.estimated_time_minutes,
-          urgency: task.urgency_score,
-          importance: task.importance_score,
-          status: 'pending'
-        })
-      )
-    );
-
-    return NextResponse.json({ tasks: savedTasks });
+    // 4. Return generated tasks (without saving yet)
+    // User will set deadlines before confirming
+    return NextResponse.json({ tasks: generatedTasks });
   } catch (error: unknown) {
     console.error("Gemini API Error:", error);
     return NextResponse.json({ error: "Failed to generate tasks" }, { status: 500 });

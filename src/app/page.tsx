@@ -17,10 +17,10 @@ export default function LandingPage() {
       <div className="absolute top-8 right-8 z-20">
         <button 
           onClick={toggleTheme}
-          className="btn btn-circle btn-ghost border border-white/10 bg-base-100/20 text-white shadow-xl backdrop-blur-md"
+          className={`btn btn-circle btn-ghost border shadow-xl backdrop-blur-md ${theme === 'light' ? 'border-black/10 bg-white/20 text-black' : 'border-white/10 bg-base-100/20 text-white'}`}
         >
           <span suppressHydrationWarning>
-            {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5 text-yellow-400" />}
+            {theme === 'light' ? <Moon className="w-5 h-5 text-black" /> : <Sun className="w-5 h-5 text-yellow-400" />}
           </span>
         </button>
       </div>
@@ -65,7 +65,7 @@ export default function LandingPage() {
 
         <Link
           href="/how-it-works"
-          className="btn h-10 w-full rounded-xl border border-white/15 bg-base-100/20 px-5 text-xs font-black uppercase tracking-[0.16em] text-white backdrop-blur-md hover:bg-base-100/30"
+          className={`btn h-10 w-full rounded-xl border px-5 text-xs font-black uppercase tracking-[0.16em] backdrop-blur-md hover:bg-base-100/30 ${theme === 'light' ? 'border-black/15 bg-white/20 text-black hover:bg-black/10' : 'border-white/15 bg-base-100/20 text-white'}`}
         >
           How It Works
         </Link>

@@ -4,6 +4,8 @@ export interface SubTask {
   estimated_time_minutes: number;
   urgency_score: number; // 1-10
   importance_score: number; // 1-10
+  deadline?: Date;
+  created_at?: Date;
   eisenhower_score?: number;
 }
 

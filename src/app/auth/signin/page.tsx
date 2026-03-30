@@ -97,6 +97,7 @@ function SignInForm() {
             </div>
             <p className={`text-xs font-black uppercase tracking-[0.3em] ${theme === 'light' ? 'text-black/55' : 'text-white/55'}`}>Snowball Access</p>
             <h2 className={`mt-3 text-4xl font-black uppercase tracking-tight ${theme === 'light' ? 'text-black' : 'text-white'}`}>Enter The Arena</h2>
+            <p className={`font-medium text-center mt-2 ${theme === 'light' ? 'text-black/70' : 'text-white/70'}`}>Break down your goals, build your legacy.</p>
             <p className={`mt-3 max-w-sm text-sm font-medium leading-relaxed ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}>
               Use your account to jump back into your mission queue and keep the streak alive.
             </p>

@@ -11,8 +11,16 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { getPriorityTask, calculatePotentialMomentum } from '@/shared/priorityPipeline';
+import { getCurrentBadge, getProgressToNextBadge, BADGES } from '@/shared/badges';
 import { useTheme } from '@/frontend/context/ThemeContext';
 import VantaBackground from '@/frontend/components/VantaBackground';
+
+type GeneratedTask = {
+  title: string;
+  estimated_time_minutes: number;
+  urgency_score: number;
+  importance_score: number;
+};
 
 type TaskItem = {
   _id: string;
@@ -21,6 +29,7 @@ type TaskItem = {
   estimatedTime: number;
   urgency?: number;
   importance?: number;
+  deadline?: string | Date;
   status?: string;
   createdAt?: string;
 };
@@ -31,14 +40,19 @@ export default function Dashboard() {
   const { theme, toggleTheme } = useTheme();
 
   // App State
-  const [activeTab, setActiveTab] = useState<'focus' | 'tasks' | 'create'>('focus');
+  const [activeTab, setActiveTab] = useState<'focus' | 'tasks' | 'badges' | 'create'>('focus');
   const [isLoading, setIsLoading] = useState(true);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [currentTask, setCurrentTask] = useState<TaskItem | null>(null);
+  const [availableTime, setAvailableTime] = useState(180); // 3 hours in minutes
   
   // Creation State
   const [creationMode, setCreationMode] = useState<'ai' | 'manual'>('ai');
   const [goal, setGoal] = useState('');
+  const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
+  const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
+  const [taskDeadlines, setTaskDeadlines] = useState<{ [key: number]: string }>({});
+  const [showDeadlineModal, setShowDeadlineModal] = useState(false);
   const [manualTask, setManualTask] = useState({
     title: '',
     importance: '5',
@@ -53,6 +67,8 @@ export default function Dashboard() {
   const [showCelebration, setShowCelebration] = useState(false);
   const missionCount = tasks.length;
   const momentumTier = momentum >= 80 ? 'Overdrive' : momentum >= 45 ? 'Hot Streak' : 'Warmup';
+  const currentBadge = getCurrentBadge(points);
+  const badgeProgress = getProgressToNextBadge(points);
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -66,22 +82,43 @@ export default function Dashboard() {
     }
   }, []);
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/signin');
-    } else if (status === 'authenticated') {
-      fetchTasks();
-      
+  const fetchUserData = useCallback(async () => {
+    try {
+      const { data } = await axios.get('/api/user');
+      setMomentum(data.momentum || 0);
+      setPoints(data.points || 0);
+    } catch (err) {
+      console.error('Failed to fetch user data', err);
+      // Fallback to localStorage if API fails
       const savedMomentum = localStorage.getItem('snowball-momentum');
       const savedPoints = localStorage.getItem('snowball-points');
       if (savedMomentum) setMomentum(parseInt(savedMomentum));
       if (savedPoints) setPoints(parseInt(savedPoints));
     }
-  }, [status, router, fetchTasks]);
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem('snowball-momentum', momentum.toString());
-    localStorage.setItem('snowball-points', points.toString());
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin');
+    } else if (status === 'authenticated') {
+      fetchTasks();
+      fetchUserData();
+    }
+  }, [status, router, fetchTasks, fetchUserData]);
+
+  useEffect(() => {
+    const updateUserData = async () => {
+      try {
+        await axios.patch('/api/user', { momentum, points });
+      } catch (err) {
+        console.error('Failed to update user data', err);
+        // Fallback to localStorage if API fails
+        localStorage.setItem('snowball-momentum', momentum.toString());
+        localStorage.setItem('snowball-points', points.toString());
+      }
+    };
+
+    updateUserData();
     
     if (momentum >= 100) {
       setPoints(p => p + 1);
@@ -91,15 +128,30 @@ export default function Dashboard() {
     }
   }, [momentum, points]);
 
+  // Check for badge unlocks
+  useEffect(() => {
+    const previousBadge = getCurrentBadge(points - 1);
+    const newBadge = getCurrentBadge(points);
+    
+    if (previousBadge.id !== newBadge.id && points > 0) {
+      // User unlocked a new badge!
+      setShowCelebration(true);
+      setTimeout(() => setShowCelebration(false), 4000);
+    }
+  }, [points]);
+
   // Actions
   const handleAIGenerate = async () => {
     if (!goal) return;
     setIsLoading(true);
     try {
-      await axios.post('/api/generate-tasks', { goal });
+      const { data } = await axios.post('/api/generate-tasks', { goal });
+      const tasks = Array.isArray(data.tasks) ? data.tasks as GeneratedTask[] : [];
+      setGeneratedTasks(tasks);
+      setCurrentTaskIndex(0);
+      setTaskDeadlines({});
+      setShowDeadlineModal(true);
       setGoal('');
-      await fetchTasks();
-      setActiveTab('tasks');
     } catch (err) {
       console.error(err);
     } finally {
@@ -107,11 +159,53 @@ export default function Dashboard() {
     }
   };
 
+  const handleSetDeadline = async (index: number, deadline: string) => {
+    const updated = { ...taskDeadlines, [index]: deadline };
+    setTaskDeadlines(updated);
+    
+    // Move to next task or save all
+    if (index < generatedTasks.length - 1) {
+      setCurrentTaskIndex(index + 1);
+    } else {
+      // All deadlines set, save all tasks
+      await saveGeneratedTasks(updated);
+    }
+  };
+
+  const saveGeneratedTasks = async (deadlines: { [key: number]: string }) => {
+    try {
+      await Promise.all(
+        generatedTasks.map((task, idx) => {
+          const deadlineDate = new Date(deadlines[idx]);
+          deadlineDate.setHours(23, 59, 59, 0); // Set to 11:59 PM
+          return axios.post('/api/tasks', {
+            title: task.title,
+            estimatedTime: task.estimated_time_minutes,
+            importance: task.importance_score,
+            urgency: task.urgency_score,
+            deadline: deadlineDate.toISOString()
+          });
+        })
+      );
+      setShowDeadlineModal(false);
+      setGeneratedTasks([]);
+      await fetchTasks();
+      setActiveTab('tasks');
+    } catch (err) {
+      console.error('Failed to save tasks', err);
+    }
+  };
+
   const handleManualCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await axios.post('/api/tasks', manualTask);
+      const deadlineDate = new Date(manualTask.deadline);
+      deadlineDate.setHours(23, 59, 59, 0); // Set to 11:59 PM
+      await axios.post('/api/tasks', {
+        ...manualTask,
+        deadline: deadlineDate.toISOString()
+      });
       setManualTask({ title: '', importance: '5', urgency: '5', estimatedTime: '30', deadline: '' });
       await fetchTasks();
       setActiveTab('tasks');
@@ -134,15 +228,20 @@ export default function Dashboard() {
       title: t.title,
       estimated_time_minutes: t.estimatedTime,
       urgency_score: t.urgency ?? 5,
-      importance_score: t.importance ?? 5
+      importance_score: t.importance ?? 5,
+      deadline: t.deadline ? new Date(t.deadline) : undefined,
+      created_at: t.createdAt ? new Date(t.createdAt) : undefined
     }));
 
-    const bestTaskData = getPriorityTask(mappedTasks, 999); // No time limit for "Just Do It"
+    const bestTaskData = getPriorityTask(mappedTasks, availableTime);
     if (bestTaskData) {
       const actualTask = tasks.find((t) => t._id === bestTaskData.id);
       if (actualTask) {
         setCurrentTask(actualTask);
       }
+    } else {
+      // No feasible tasks - show feedback
+      alert(`No tasks fit in your ${availableTime >= 60 ? `${Math.floor(availableTime / 60)}h ${availableTime % 60}m` : availableTime + 'm'} available time. Increase your available time or create shorter tasks.`);
     }
   };
 
@@ -203,9 +302,9 @@ export default function Dashboard() {
 
             <div className="flex items-center gap-3">
               <div className="score-chip px-4 py-3">
-                <p className={`text-[10px] font-black uppercase tracking-[0.25em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>Points</p>
+                <p className={`text-[10px] font-black uppercase tracking-[0.25em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>{currentBadge.name}</p>
                 <div className="mt-1 flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-warning" />
+                  <span className="text-2xl">{currentBadge.icon}</span>
                   <span className={`font-black text-lg ${theme === 'light' ? 'text-black' : 'text-white'}`}>{points}</span>
                 </div>
               </div>
@@ -256,6 +355,13 @@ export default function Dashboard() {
           >
             <List className="w-4 h-4" />
             My Tasks
+          </button>
+          <button 
+            onClick={() => setActiveTab('badges')}
+            className={`btn btn-sm sm:btn-md gap-2 rounded-xl transition-all duration-300 ${activeTab === 'badges' ? 'btn-primary neon-border-primary' : `btn-ghost ${theme === 'light' ? 'text-black' : 'text-white'}`}`}
+          >
+            <Trophy className="w-4 h-4" />
+            Badges
           </button>
           <button 
             onClick={() => setActiveTab('create')}
@@ -315,7 +421,7 @@ export default function Dashboard() {
             >
               {!currentTask ? (
                 <div className="w-full max-w-5xl px-4">
-                  <div className="mission-frame rounded-[2.5rem] px-6 py-10 text-center sm:px-10 sm:py-14 flex flex-col items-center justify-center">
+                  <div className="focus-frame rounded-[2.5rem] px-6 py-10 text-center sm:px-10 sm:py-14 flex flex-col items-center justify-center">
                   <h2 className={`text-5xl sm:text-7xl font-black mb-6 italic tracking-tighter uppercase ${theme === 'light' ? 'text-black' : 'text-white'}`}><span className="neon-text-primary">Press Start.</span></h2>
                   <p className={`text-xl mb-12 font-medium tracking-widest uppercase ${theme === 'light' ? 'text-black/60' : 'text-white/60'}`}>Your next best move is one hit away.</p>
                   
@@ -329,6 +435,33 @@ export default function Dashboard() {
                         <span className="text-2xl sm:text-4xl font-black tracking-widest text-white italic">JUST DO IT</span>
                     </div>
                   </button>
+
+                  {/* How much time do you have? */}
+                  <div className="mt-16 w-full max-w-lg mx-auto">
+                    <div className="mb-4">
+                      <p className={`text-lg font-bold uppercase tracking-widest ${theme === 'light' ? 'text-black/80' : 'text-white/80'}`}>
+                        How much time do you have?
+                      </p>
+                      <p className={`text-3xl font-black mt-2 ${theme === 'light' ? 'text-black' : 'text-white'} neon-text-primary`}>
+                        {availableTime >= 60 
+                          ? `${Math.floor(availableTime / 60)}h ${availableTime % 60}m` 
+                          : `${availableTime}m`}
+                      </p>
+                    </div>
+                    <input
+                      type="range"
+                      min="30"
+                      max="360"
+                      step="15"
+                      value={availableTime}
+                      onChange={(e) => setAvailableTime(parseInt(e.target.value))}
+                      className="range range-primary w-full"
+                    />
+                    <div className={`flex justify-between text-xs font-bold uppercase tracking-widest mt-3 ${theme === 'light' ? 'text-black/50' : 'text-white/50'}`}>
+                      <span>30m</span>
+                      <span>6h</span>
+                    </div>
+                  </div>
                   </div>
                 </div>
               ) : (
@@ -434,6 +567,101 @@ export default function Dashboard() {
             </motion.div>
           )}
 
+          {/* BADGES TAB */}
+          {activeTab === 'badges' && (
+            <motion.div 
+              key="badges"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="w-full max-w-5xl mx-auto"
+            >
+              <div className="flex justify-between items-center mb-8">
+                <h2 className={`text-3xl font-black italic uppercase tracking-tighter ${theme === 'light' ? 'text-black' : 'neon-text-primary'}`}>Achievement Hall</h2>
+                <div className="flex items-center gap-4">
+                  <div className={`badge badge-primary font-black italic border-none px-4 py-4 ${theme === 'light' ? 'text-white' : 'text-white'}`}>
+                    {points} POINTS
+                  </div>
+                </div>
+              </div>
+
+              {/* Current Badge Showcase */}
+              <div className="mb-8">
+                <div className={`glass-card rounded-3xl p-8 text-center ${theme === 'light' ? 'border-black/10' : 'border-white/10'}`}>
+                  <div className="mb-6">
+                    <div className={`text-6xl mb-4 ${currentBadge.color}`}>{currentBadge.icon}</div>
+                    <h3 className={`text-3xl font-black uppercase tracking-tight mb-2 ${theme === 'light' ? 'text-black' : 'text-white'}`}>
+                      {currentBadge.name}
+                    </h3>
+                    <p className={`text-lg font-medium ${theme === 'light' ? 'text-black/70' : 'text-white/70'}`}>
+                      {currentBadge.description}
+                    </p>
+                  </div>
+
+                  {/* Progress to next badge */}
+                  {badgeProgress.progress < 100 && (
+                    <div className="max-w-md mx-auto">
+                      <div className="flex justify-between text-sm font-bold mb-2">
+                        <span className={theme === 'light' ? 'text-black/60' : 'text-white/60'}>
+                          {badgeProgress.current} / {badgeProgress.next} points
+                        </span>
+                        <span className={theme === 'light' ? 'text-black/60' : 'text-white/60'}>
+                          {Math.round(badgeProgress.progress)}%
+                        </span>
+                      </div>
+                      <progress 
+                        className="progress progress-primary w-full h-3" 
+                        value={badgeProgress.progress} 
+                        max="100"
+                      ></progress>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* All Badges Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {BADGES.map((badge) => {
+                  const isUnlocked = points >= badge.minPoints;
+                  const isCurrent = badge.id === currentBadge.id;
+
+                  return (
+                    <div 
+                      key={badge.id}
+                      className={`glass-card rounded-2xl p-6 transition-all ${
+                        isCurrent 
+                          ? 'ring-2 ring-primary shadow-lg shadow-primary/20' 
+                          : isUnlocked 
+                            ? 'opacity-75 hover:opacity-100' 
+                            : 'opacity-50 grayscale'
+                      } ${theme === 'light' ? 'border-black/10' : 'border-white/10'}`}
+                    >
+                      <div className="text-center">
+                        <div className={`text-4xl mb-3 ${badge.color} ${!isUnlocked ? 'grayscale' : ''}`}>
+                          {badge.icon}
+                        </div>
+                        <h4 className={`text-xl font-black uppercase tracking-tight mb-2 ${theme === 'light' ? 'text-black' : 'text-white'}`}>
+                          {badge.name}
+                        </h4>
+                        <p className={`text-sm font-medium mb-4 ${theme === 'light' ? 'text-black/70' : 'text-white/70'}`}>
+                          {badge.description}
+                        </p>
+                        <div className={`text-xs font-black uppercase tracking-widest ${theme === 'light' ? 'text-black/50' : 'text-white/50'}`}>
+                          {badge.minPoints}+ points
+                        </div>
+                        {isCurrent && (
+                          <div className="mt-3">
+                            <span className="badge badge-primary badge-sm font-black">CURRENT</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+
           {/* CREATE TAB */}
           {activeTab === 'create' && (
             <motion.div 
@@ -520,13 +748,15 @@ export default function Dashboard() {
                         </div>
 
                         <div className="form-control">
-                            <label className={`label uppercase tracking-widest text-xs font-black font-medium flex gap-2 ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}><Calendar className="w-4 h-4" /> Deadline (Optional)</label>
+                            <label className={`label uppercase tracking-widest text-xs font-black font-medium flex gap-2 ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}><Calendar className="w-4 h-4" /> Deadline</label>
                             <input 
                                 type="date"
                                 className={`input input-bordered ${theme === 'light' ? 'bg-black/80 border-black/10 text-black' : 'bg-base-100/80 border-white/10 text-white'} focus:border-primary`}
                                 value={manualTask.deadline}
                                 onChange={(e) => setManualTask({...manualTask, deadline: e.target.value})}
+                                required
                             />
+                            <p className={`text-xs mt-1 ${theme === 'light' ? 'text-black/50' : 'text-white/50'}`}>Due at 11:59 PM on this date</p>
                         </div>
 
                         <button 
@@ -555,10 +785,91 @@ export default function Dashboard() {
             className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
           >
             <div className={`glass-card text-center p-12 rounded-[3rem] shadow-[0_0_100px_rgba(37,99,235,0.4)] neon-border-primary ${theme === 'light' ? 'text-black' : 'text-white'}`}>
-              <Trophy className="w-20 h-20 text-warning mx-auto mb-6 drop-shadow-[0_0_20px_rgba(255,165,0,0.5)]" />
-              <h1 className={`text-5xl font-black italic tracking-tighter mb-2 ${theme === 'light' ? 'text-black' : 'neon-text-primary'}`}>MOMENTUM CRITICAL!</h1>
-              <p className={`font-black text-xl uppercase tracking-widest ${theme === 'light' ? 'text-black/80' : 'text-white/80'}`}>+1 RANK ACHIEVED</p>
+              {momentum >= 100 ? (
+                <>
+                  <Trophy className="w-20 h-20 text-warning mx-auto mb-6 drop-shadow-[0_0_20px_rgba(255,165,0,0.5)]" />
+                  <h1 className={`text-5xl font-black italic tracking-tighter mb-2 ${theme === 'light' ? 'text-black' : 'neon-text-primary'}`}>MOMENTUM CRITICAL!</h1>
+                  <p className={`font-black text-xl uppercase tracking-widest ${theme === 'light' ? 'text-black/80' : 'text-white/80'}`}>+1 RANK ACHIEVED</p>
+                </>
+              ) : (
+                <>
+                  <div className={`text-6xl mb-6 ${currentBadge.color}`}>{currentBadge.icon}</div>
+                  <h1 className={`text-5xl font-black italic tracking-tighter mb-2 ${theme === 'light' ? 'text-black' : 'neon-text-primary'}`}>BADGE UNLOCKED!</h1>
+                  <p className={`font-black text-xl uppercase tracking-widest mb-2 ${theme === 'light' ? 'text-black/80' : 'text-white/80'}`}>{currentBadge.name}</p>
+                  <p className={`text-lg ${theme === 'light' ? 'text-black/60' : 'text-white/60'}`}>{currentBadge.description}</p>
+                </>
+              )}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Deadline Setting Modal */}
+      <AnimatePresence>
+        {showDeadlineModal && generatedTasks.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className={`glass-card rounded-[2rem] p-8 max-w-md w-full shadow-2xl ${theme === 'light' ? 'text-black border-black/10' : 'text-white border-white/10'}`}
+            >
+              <div className="mb-8">
+                <p className={`text-xs font-black uppercase tracking-[0.25em] ${theme === 'light' ? 'text-black/50' : 'text-white/50'}`}>
+                  Task {currentTaskIndex + 1} of {generatedTasks.length}
+                </p>
+                <h3 className={`text-2xl font-black mt-3 mb-4 ${theme === 'light' ? 'text-black' : 'text-primary'}`}>
+                  {generatedTasks[currentTaskIndex]?.title}
+                </h3>
+                <div className={`flex gap-4 text-sm font-medium mb-6 ${theme === 'light' ? 'text-black/60' : 'text-white/60'}`}>
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-4 h-4" />
+                    {generatedTasks[currentTaskIndex]?.estimated_time_minutes}m
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Sparkles className="w-4 h-4" />
+                    {generatedTasks[currentTaskIndex]?.importance_score ?? 5} importance
+                  </span>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <label className={`label uppercase tracking-widest text-xs font-black mb-3 ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}>
+                  <Calendar className="w-4 h-4 mr-1" /> When is this due?
+                </label>
+                <input
+                  type="date"
+                  className={`input input-bordered w-full h-12 ${theme === 'light' ? 'bg-black/80 border-black/10 text-white' : 'bg-base-100/80 border-white/10 text-white'} focus:border-primary`}
+                  value={taskDeadlines[currentTaskIndex] || ''}
+                  onChange={(e) => setTaskDeadlines({ ...taskDeadlines, [currentTaskIndex]: e.target.value })}
+                />
+                <p className={`text-xs mt-2 ${theme === 'light' ? 'text-black/50' : 'text-white/50'}`}>
+                  Time defaults to 11:59 PM if not specified
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                {currentTaskIndex > 0 && (
+                  <button
+                    onClick={() => setCurrentTaskIndex(currentTaskIndex - 1)}
+                    className={`btn btn-ghost flex-1 rounded-xl ${theme === 'light' ? 'text-black border-black/10' : 'text-white border-white/10'}`}
+                  >
+                    Back
+                  </button>
+                )}
+                <button
+                  onClick={() => handleSetDeadline(currentTaskIndex, taskDeadlines[currentTaskIndex] || '')}
+                  disabled={!taskDeadlines[currentTaskIndex]}
+                  className="btn btn-primary flex-1 rounded-xl font-black italic"
+                >
+                  {currentTaskIndex === generatedTasks.length - 1 ? 'Deploy Missions' : 'Next Task'}
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

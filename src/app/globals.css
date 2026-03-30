@@ -91,6 +91,32 @@
     @apply border border-white/10 backdrop-blur-xl;
     box-shadow: 0 22px 80px rgba(5, 5, 26, 0.35);
   }
+  .focus-frame {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08)),
+      linear-gradient(135deg, rgba(37, 99, 235, 0.22), rgba(0, 255, 255, 0.12));
+    @apply border-2 backdrop-blur-2xl;
+    border-color: rgba(37, 99, 235, 0.4);
+    box-shadow: 
+      0 32px 120px rgba(5, 5, 26, 0.5),
+      0 0 40px rgba(37, 99, 235, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    animation: focusGlow 4s ease-in-out infinite alternate;
+  }
+  @keyframes focusGlow {
+    0% {
+      box-shadow: 
+        0 32px 120px rgba(5, 5, 26, 0.5),
+        0 0 40px rgba(37, 99, 235, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+    100% {
+      box-shadow: 
+        0 32px 120px rgba(5, 5, 26, 0.5),
+        0 0 50px rgba(37, 99, 235, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+  }
 }
 
 .vanta-container {
