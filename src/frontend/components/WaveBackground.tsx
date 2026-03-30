@@ -23,10 +23,9 @@ export default function WaveBackground() {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setClearColor(0x020617); // dark bg
+    renderer.setClearColor(0x020617);
     mount.appendChild(renderer.domElement);
 
-    // 🌊 Create wave grid
     const geometry = new THREE.PlaneGeometry(20, 10, 100, 50);
 
     const material = new THREE.MeshBasicMaterial({
@@ -42,7 +41,6 @@ export default function WaveBackground() {
 
     let time = 0;
 
-    // ✨ Animation
     const animate = () => {
       requestAnimationFrame(animate);
       time += 0.03;
@@ -67,7 +65,6 @@ export default function WaveBackground() {
 
     animate();
 
-    // 📱 Resize fix
     const handleResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();

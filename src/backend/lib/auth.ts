@@ -34,7 +34,6 @@ export const authOptions: NextAuthOptions = {
 
           await dbConnect();
 
-          // Match email case-insensitively so older records still work.
           const user = await User.findOne({
             email: {
               $regex: `^${escapeRegExp(normalizedEmail)}$`,

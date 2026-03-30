@@ -16,19 +16,19 @@ const TaskSchema = new mongoose.Schema({
     trim: true,
   },
   importance: {
-    type: Number, // 1-10
+    type: Number,
     required: true,
     min: 1,
     max: 10,
   },
   urgency: {
-    type: Number, // 1-10
+    type: Number,
     required: true,
     min: 1,
     max: 10,
   },
   estimatedTime: {
-    type: Number, // minutes
+    type: Number,
     required: true,
   },
   deadline: {

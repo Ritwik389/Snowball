@@ -45,7 +45,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    document.documentElement.className = theme; // Also set class for Tailwind dark variant
+    document.documentElement.className = theme;
   }, [theme]);
 
   const toggleTheme = () => {

@@ -72,13 +72,12 @@ export const BADGES: Badge[] = [
 ];
 
 export function getCurrentBadge(points: number): Badge {
-  // Find the highest badge the user qualifies for
   for (let i = BADGES.length - 1; i >= 0; i--) {
     if (points >= BADGES[i].minPoints) {
       return BADGES[i];
     }
   }
-  return BADGES[0]; // Fallback to recruit
+  return BADGES[0];
 }
 
 export function getNextBadge(points: number): Badge | null {
@@ -89,7 +88,7 @@ export function getNextBadge(points: number): Badge | null {
     return BADGES[currentIndex + 1];
   }
 
-  return null; // Already at max level
+  return null;
 }
 
 export function getProgressToNextBadge(points: number): { current: number; next: number; progress: number } {

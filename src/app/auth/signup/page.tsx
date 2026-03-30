@@ -40,7 +40,6 @@ export default function SignUpPage() {
       <VantaBackground />
       <div className="fixed inset-0 synth-grid pointer-events-none opacity-20 z-0"></div>
 
-      {/* Theme Toggle Button */}
       <button
         onClick={toggleTheme}
         className="fixed top-6 right-6 z-50 p-3 rounded-full bg-primary hover:bg-primary/80 transition-colors"

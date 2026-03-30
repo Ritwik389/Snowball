@@ -15,16 +15,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
     }
 
-    // Check if user already exists
     const userExists = await User.findOne({ email: normalizedEmail });
     if (userExists) {
       return NextResponse.json({ error: 'User already exists' }, { status: 400 });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(normalizedPassword, 10);
 
-    // Create user
     const user = await User.create({
       name: normalizedName,
       email: normalizedEmail,

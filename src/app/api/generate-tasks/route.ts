@@ -38,7 +38,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing GROQ_API_KEY" }, { status: 500 });
     }
 
-    // 1. Check Rate Limit
     if (ratelimit) {
       const ip = req.headers.get("x-forwarded-for") ?? "127.0.0.1";
       const { success } = await ratelimit.limit(ip);
@@ -47,7 +46,6 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2. Parse Request
     const { goal } = await req.json();
     if (!goal) {
       return NextResponse.json({ error: "Goal is required" }, { status: 400 });
@@ -67,7 +65,6 @@ export async function POST(req: Request) {
       Return ONLY a JSON array of objects with these keys. No other text.
     `;
 
-    // 3. Call Groq (OpenAI-compatible)
     const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -94,7 +91,6 @@ export async function POST(req: Request) {
     };
     const text = groqData.choices?.[0]?.message?.content ?? "";
     
-    // Clean JSON if needed (LLMs sometimes add markdown blocks)
     const jsonString = text.replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(jsonString) as unknown;
     if (!isGeneratedTaskArray(parsed)) {
@@ -102,8 +98,6 @@ export async function POST(req: Request) {
     }
     const generatedTasks = parsed;
 
-    // 4. Return generated tasks (without saving yet)
-    // User will set deadlines before confirming
     return NextResponse.json({ tasks: generatedTasks });
   } catch (error: unknown) {
     console.error("Gemini API Error:", error);

@@ -15,7 +15,6 @@ import { getCurrentBadge, getProgressToNextBadge, BADGES } from '@/shared/badges
 import { useTheme } from '@/frontend/context/ThemeContext';
 import VantaBackground from '@/frontend/components/VantaBackground';
 
-// Debounce utility
 const debounce = <T extends any[]>(
   fn: (...args: T) => Promise<void>,
   delay: number
@@ -51,16 +50,14 @@ export default function Dashboard() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
 
-  // App State
   const [activeTab, setActiveTab] = useState<'focus' | 'tasks' | 'badges' | 'create'>('focus');
   const [isLoading, setIsLoading] = useState(true);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [currentTask, setCurrentTask] = useState<TaskItem | null>(null);
-  const [availableTime, setAvailableTime] = useState(180); // 3 hours in minutes
+  const [availableTime, setAvailableTime] = useState(180);
   const momentumRef = useRef(0);
   const pointsRef = useRef(0);
   
-  // Creation State
   const [creationMode, setCreationMode] = useState<'ai' | 'manual'>('ai');
   const [goal, setGoal] = useState('');
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
@@ -75,7 +72,6 @@ export default function Dashboard() {
     deadline: ''
   });
 
-  // Gamification State
   const [momentum, setMomentum] = useState(0); 
   const [points, setPoints] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
@@ -109,7 +105,6 @@ export default function Dashboard() {
       pointsRef.current = points;
     } catch (err) {
       console.error('Failed to fetch user data', err);
-      // Fallback to localStorage if API fails
       const savedMomentum = localStorage.getItem('snowball-momentum');
       const savedPoints = localStorage.getItem('snowball-points');
       if (savedMomentum) {
@@ -134,14 +129,12 @@ export default function Dashboard() {
     }
   }, [status, router, fetchTasks, fetchUserData]);
 
-  // Debounced update function
   const debouncedUpdateUserData = useRef(
     debounce(async (m: number, p: number) => {
       try {
         await axios.patch('/api/user', { momentum: m, points: p });
       } catch (err) {
         console.error('Failed to update user data', err);
-        // Fallback to localStorage if API fails
         localStorage.setItem('snowball-momentum', m.toString());
         localStorage.setItem('snowball-points', p.toString());
       }
@@ -149,7 +142,6 @@ export default function Dashboard() {
   ).current;
 
   useEffect(() => {
-    // Handle momentum conversion to points
     if (momentum >= 100) {
       const newPoints = pointsRef.current + 1;
       setPoints(newPoints);
@@ -158,27 +150,22 @@ export default function Dashboard() {
       momentumRef.current = 0;
       setShowCelebration(true);
       setTimeout(() => setShowCelebration(false), 3000);
-      // Save the reset momentum and new points
       debouncedUpdateUserData(0, newPoints);
     } else {
-      // Normal save
       debouncedUpdateUserData(momentum, points);
     }
   }, [momentum, points, debouncedUpdateUserData]);
 
-  // Check for badge unlocks
   useEffect(() => {
     const previousBadge = getCurrentBadge(points - 1);
     const newBadge = getCurrentBadge(points);
     
     if (previousBadge.id !== newBadge.id && points > 0) {
-      // User unlocked a new badge!
       setShowCelebration(true);
       setTimeout(() => setShowCelebration(false), 4000);
     }
   }, [points]);
 
-  // Actions
   const handleAIGenerate = async () => {
     if (!goal) return;
     setIsLoading(true);
@@ -201,11 +188,9 @@ export default function Dashboard() {
     const updated = { ...taskDeadlines, [index]: deadline };
     setTaskDeadlines(updated);
     
-    // Move to next task or save all
     if (index < generatedTasks.length - 1) {
       setCurrentTaskIndex(index + 1);
     } else {
-      // All deadlines set, save all tasks
       await saveGeneratedTasks(updated);
     }
   };
@@ -215,7 +200,7 @@ export default function Dashboard() {
       await Promise.all(
         generatedTasks.map((task, idx) => {
           const deadlineDate = new Date(deadlines[idx]);
-          deadlineDate.setHours(23, 59, 59, 0); // Set to 11:59 PM
+          deadlineDate.setHours(23, 59, 59, 0);
           return axios.post('/api/tasks', {
             title: task.title,
             estimatedTime: task.estimated_time_minutes,
@@ -239,7 +224,7 @@ export default function Dashboard() {
     setIsLoading(true);
     try {
       const deadlineDate = new Date(manualTask.deadline);
-      deadlineDate.setHours(23, 59, 59, 0); // Set to 11:59 PM
+      deadlineDate.setHours(23, 59, 59, 0);
       await axios.post('/api/tasks', {
         ...manualTask,
         deadline: deadlineDate.toISOString()
@@ -259,8 +244,6 @@ export default function Dashboard() {
       setActiveTab('create');
       return;
     }
-    // Use the algorithm to find the best task
-    // Mapping our DB tasks to the SubTask type expected by the pipeline
     const mappedTasks = tasks.map((t) => ({
       id: t._id,
       title: t.title,
@@ -278,7 +261,6 @@ export default function Dashboard() {
         setCurrentTask(actualTask);
       }
     } else {
-      // No feasible tasks - show feedback
       alert(`No tasks fit in your ${availableTime >= 60 ? `${Math.floor(availableTime / 60)}h ${availableTime % 60}m` : availableTime + 'm'} available time. Increase your available time or create shorter tasks.`);
     }
   };
@@ -294,12 +276,10 @@ export default function Dashboard() {
         importance_score: task.importance ?? 5
       });
       
-      // Calculate new momentum
       const newMomentum = Math.min(100, momentumRef.current + gain);
       momentumRef.current = newMomentum;
       setMomentum(newMomentum);
       
-      // Explicitly save to database immediately
       await axios.patch('/api/user', { momentum: newMomentum, points: pointsRef.current });
       
       setCurrentTask(null);
@@ -316,7 +296,6 @@ export default function Dashboard() {
       momentumRef.current = newMomentum;
       setMomentum(newMomentum);
       
-      // Explicitly save to database immediately
       await axios.patch('/api/user', { momentum: newMomentum, points: pointsRef.current });
       
       setCurrentTask(null);
@@ -403,7 +382,6 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Navigation Tabs */}
       <nav className={`relative z-10 flex justify-center mt-8 px-4`}>
         <div className={`flex p-1.5 rounded-3xl border backdrop-blur-md ${theme === 'light' ? 'bg-black/5 border-black/10' : 'bg-base-200/45 border-white/10'}`}>
           <button 
@@ -437,7 +415,6 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      {/* Main Content */}
       <main className="relative z-10 flex-1 flex flex-col items-center p-4 w-full pt-10 overflow-y-auto">
         
         <div className="mission-frame w-full max-w-6xl rounded-[2rem] px-5 py-5 mb-10">
@@ -474,7 +451,6 @@ export default function Dashboard() {
         </div>
 
         <AnimatePresence mode="wait">
-          {/* FOCUS TAB */}
           {activeTab === 'focus' && (
             <motion.div 
               key="focus"
@@ -500,7 +476,6 @@ export default function Dashboard() {
                     </div>
                   </button>
 
-                  {/* How much time do you have? */}
                   <div className="mt-16 w-full max-w-lg mx-auto">
                     <div className="mb-4">
                       <p className={`text-lg font-bold uppercase tracking-widest ${theme === 'light' ? 'text-black/80' : 'text-white/80'}`}>
@@ -581,7 +556,6 @@ export default function Dashboard() {
             </motion.div>
           )}
 
-          {/* TASKS TAB */}
           {activeTab === 'tasks' && (
             <motion.div 
               key="tasks"
@@ -631,7 +605,6 @@ export default function Dashboard() {
             </motion.div>
           )}
 
-          {/* BADGES TAB */}
           {activeTab === 'badges' && (
             <motion.div 
               key="badges"
@@ -649,7 +622,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Current Badge Showcase */}
               <div className="mb-8">
                 <div className={`glass-card rounded-3xl p-8 text-center ${theme === 'light' ? 'border-black/10' : 'border-white/10'}`}>
                   <div className="mb-6">
@@ -662,7 +634,6 @@ export default function Dashboard() {
                     </p>
                   </div>
 
-                  {/* Progress to next badge */}
                   {badgeProgress.progress < 100 && (
                     <div className="max-w-md mx-auto">
                       <div className="flex justify-between text-sm font-bold mb-2">
@@ -683,7 +654,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* All Badges Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {BADGES.map((badge) => {
                   const isUnlocked = points >= badge.minPoints;
@@ -726,7 +696,6 @@ export default function Dashboard() {
             </motion.div>
           )}
 
-          {/* CREATE TAB */}
           {activeTab === 'create' && (
             <motion.div 
               key="create"
@@ -840,7 +809,6 @@ export default function Dashboard() {
         </AnimatePresence>
       </main>
 
-      {/* Celebration Overlay */}
       <AnimatePresence>
         {showCelebration && (
           <motion.div
@@ -869,7 +837,6 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      {/* Deadline Setting Modal */}
       <AnimatePresence>
         {showDeadlineModal && generatedTasks.length > 0 && (
           <motion.div
