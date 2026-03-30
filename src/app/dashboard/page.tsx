@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Zap, CheckCircle, SkipForward, ArrowLeft, Loader2, Trophy, 
   Clock, Sun, Moon, List, PlusCircle, Sparkles, LayoutDashboard,
-  Calendar, AlertCircle, Flame, Crosshair, ShieldCheck
+  Calendar, AlertCircle, Flame, Crosshair
 } from 'lucide-react';
 import axios from 'axios';
 import { getPriorityTask, calculatePotentialMomentum } from '@/shared/priorityPipeline';
@@ -188,7 +188,7 @@ export default function Dashboard() {
       <VantaBackground />
       <div className="fixed inset-0 synth-grid pointer-events-none opacity-20 z-0"></div>
 
-      <header className="relative z-20 border-b border-white/5 bg-base-100/25 backdrop-blur-md">
+      <header className={`relative z-20 backdrop-blur-md ${theme === 'light' ? 'border-b border-black/10 bg-white/25' : 'border-b border-white/5 bg-base-100/25'}`}>
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -196,34 +196,34 @@ export default function Dashboard() {
                 <Zap className="w-6 h-6 text-white fill-current" />
               </div>
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.35em] text-white/45">Mission Control</p>
+                <p className={`text-[11px] font-black uppercase tracking-[0.35em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>Mission Control</p>
                 <span className="font-black text-2xl tracking-tighter neon-text-primary italic">SNOWBALL</span>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <div className="score-chip px-4 py-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/45">Points</p>
+                <p className={`text-[10px] font-black uppercase tracking-[0.25em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>Points</p>
                 <div className="mt-1 flex items-center gap-2">
                   <Trophy className="w-4 h-4 text-warning" />
-                  <span className="font-black text-lg text-white">{points}</span>
+                  <span className={`font-black text-lg ${theme === 'light' ? 'text-black' : 'text-white'}`}>{points}</span>
                 </div>
               </div>
-              <button onClick={toggleTheme} className="btn btn-circle btn-sm btn-ghost border border-white/10 bg-base-100/25 hover:bg-white/10">
+              <button onClick={toggleTheme} className={`btn btn-circle btn-sm btn-ghost border transition-colors ${theme === 'light' ? 'border-black/10 bg-white/10 hover:bg-black/10' : 'border-white/10 bg-base-100/25 hover:bg-white/10'}`}>
                 <span suppressHydrationWarning>
-                  {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                  {theme === 'light' ? <Moon className="w-4 h-4 text-black" /> : <Sun className="w-4 h-4 text-white" />}
                 </span>
               </button>
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2">
             <div className="score-chip px-4 py-4">
               <div className="flex items-center gap-3">
                 <Flame className="w-5 h-5 text-primary" />
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/45">Momentum Tier</p>
-                  <p className="text-lg font-black text-white">{momentumTier}</p>
+                  <p className={`text-[10px] font-black uppercase tracking-[0.25em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>Momentum Tier</p>
+                  <p className={`text-lg font-black ${theme === 'light' ? 'text-black' : 'text-white'}`}>{momentumTier}</p>
                 </div>
               </div>
             </div>
@@ -231,17 +231,8 @@ export default function Dashboard() {
               <div className="flex items-center gap-3">
                 <Crosshair className="w-5 h-5 text-secondary" />
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/45">Pending Missions</p>
-                  <p className="text-lg font-black text-white">{missionCount}</p>
-                </div>
-              </div>
-            </div>
-            <div className="score-chip px-4 py-4">
-              <div className="flex items-center gap-3">
-                <ShieldCheck className="w-5 h-5 text-warning" />
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/45">Focus Protocol</p>
-                  <p className="text-lg font-black text-white">Single-task attack</p>
+                  <p className={`text-[10px] font-black uppercase tracking-[0.25em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>Pending Missions</p>
+                  <p className={`text-lg font-black ${theme === 'light' ? 'text-black' : 'text-white'}`}>{missionCount}</p>
                 </div>
               </div>
             </div>
@@ -250,25 +241,25 @@ export default function Dashboard() {
       </header>
 
       {/* Navigation Tabs */}
-      <nav className="relative z-10 flex justify-center mt-8 px-4">
-        <div className="flex bg-base-200/45 backdrop-blur-md p-1.5 rounded-3xl border border-white/10">
+      <nav className={`relative z-10 flex justify-center mt-8 px-4`}>
+        <div className={`flex p-1.5 rounded-3xl border backdrop-blur-md ${theme === 'light' ? 'bg-black/5 border-black/10' : 'bg-base-200/45 border-white/10'}`}>
           <button 
             onClick={() => setActiveTab('focus')}
-            className={`btn btn-sm sm:btn-md gap-2 rounded-xl transition-all duration-300 ${activeTab === 'focus' ? 'btn-primary neon-border-primary' : 'btn-ghost'}`}
+            className={`btn btn-sm sm:btn-md gap-2 rounded-xl transition-all duration-300 ${activeTab === 'focus' ? 'btn-primary neon-border-primary' : `btn-ghost ${theme === 'light' ? 'text-black' : 'text-white'}`}`}
           >
             <LayoutDashboard className="w-4 h-4" />
             Focus
           </button>
           <button 
             onClick={() => setActiveTab('tasks')}
-            className={`btn btn-sm sm:btn-md gap-2 rounded-xl transition-all duration-300 ${activeTab === 'tasks' ? 'btn-primary neon-border-primary' : 'btn-ghost'}`}
+            className={`btn btn-sm sm:btn-md gap-2 rounded-xl transition-all duration-300 ${activeTab === 'tasks' ? 'btn-primary neon-border-primary' : `btn-ghost ${theme === 'light' ? 'text-black' : 'text-white'}`}`}
           >
             <List className="w-4 h-4" />
             My Tasks
           </button>
           <button 
             onClick={() => setActiveTab('create')}
-            className={`btn btn-sm sm:btn-md gap-2 rounded-xl transition-all duration-300 ${activeTab === 'create' ? 'btn-primary neon-border-primary' : 'btn-ghost'}`}
+            className={`btn btn-sm sm:btn-md gap-2 rounded-xl transition-all duration-300 ${activeTab === 'create' ? 'btn-primary neon-border-primary' : `btn-ghost ${theme === 'light' ? 'text-black' : 'text-white'}`}`}
           >
             <PlusCircle className="w-4 h-4" />
             Create
@@ -282,24 +273,24 @@ export default function Dashboard() {
         <div className="mission-frame w-full max-w-6xl rounded-[2rem] px-5 py-5 mb-10">
           <div className="mb-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-white/50">Combat Meter</p>
-              <h2 className="mt-2 text-3xl font-black uppercase tracking-tight text-white sm:text-4xl">
+              <p className={`text-xs font-black uppercase tracking-[0.3em] ${theme === 'light' ? 'text-black/50' : 'text-white/50'}`}>Combat Meter</p>
+              <h2 className={`mt-2 text-3xl font-black uppercase tracking-tight sm:text-4xl ${theme === 'light' ? 'text-black' : 'text-white'}`}>
                 Momentum at <span className="neon-text-primary">{momentum}%</span>
               </h2>
-              <p className="mt-2 text-sm font-medium text-white/60">Every completed task feeds the streak. Skips cool it off.</p>
+              <p className={`mt-2 text-sm font-medium ${theme === 'light' ? 'text-black/60' : 'text-white/60'}`}>Every completed task feeds the streak. Skips cool it off.</p>
             </div>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="score-chip px-4 py-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">Rank</p>
-                <p className="mt-1 text-xl font-black text-white">{points}</p>
+                <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>Rank</p>
+                <p className={`mt-1 text-xl font-black ${theme === 'light' ? 'text-black' : 'text-white'}`}>{points}</p>
               </div>
               <div className="score-chip px-4 py-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">Queue</p>
-                <p className="mt-1 text-xl font-black text-white">{missionCount}</p>
+                <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>Queue</p>
+                <p className={`mt-1 text-xl font-black ${theme === 'light' ? 'text-black' : 'text-white'}`}>{missionCount}</p>
               </div>
               <div className="score-chip px-4 py-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">Mode</p>
-                <p className="mt-1 text-xl font-black text-white">{activeTab}</p>
+                <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>Mode</p>
+                <p className={`mt-1 text-xl font-black ${theme === 'light' ? 'text-black' : 'text-white'}`}>{activeTab}</p>
               </div>
             </div>
           </div>
@@ -324,9 +315,9 @@ export default function Dashboard() {
             >
               {!currentTask ? (
                 <div className="w-full max-w-5xl px-4">
-                  <div className="mission-frame rounded-[2.5rem] px-6 py-10 text-center sm:px-10 sm:py-14">
-                  <h2 className="text-5xl sm:text-7xl font-black mb-6 neon-text-primary italic tracking-tighter uppercase">Press Start.</h2>
-                  <p className="text-xl opacity-60 mb-12 font-medium tracking-widest uppercase">Your next best move is one hit away.</p>
+                  <div className="mission-frame rounded-[2.5rem] px-6 py-10 text-center sm:px-10 sm:py-14 flex flex-col items-center justify-center">
+                  <h2 className={`text-5xl sm:text-7xl font-black mb-6 italic tracking-tighter uppercase ${theme === 'light' ? 'text-black' : 'text-white'}`}><span className="neon-text-primary">Press Start.</span></h2>
+                  <p className={`text-xl mb-12 font-medium tracking-widest uppercase ${theme === 'light' ? 'text-black/60' : 'text-white/60'}`}>Your next best move is one hit away.</p>
                   
                   <button 
                     onClick={handleJustDoIt}
@@ -344,17 +335,17 @@ export default function Dashboard() {
                 <motion.div 
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="w-full max-w-xl glass-card rounded-[2.5rem] p-12 text-center relative border-primary/30 mx-auto"
+                  className={`w-full max-w-xl glass-card rounded-[2.5rem] p-12 text-center relative mx-auto ${theme === 'light' ? 'text-black border-black/10' : 'text-white border-primary/30'}`}
                 >
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-6 py-2 bg-primary rounded-full neon-border-primary">
-                    <span className="text-xs font-black uppercase tracking-widest text-white">Active Objective</span>
+                  <div className={`absolute -top-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-full neon-border-primary ${theme === 'light' ? 'bg-primary text-white' : 'bg-primary text-white'}`}>
+                    <span className="text-xs font-black uppercase tracking-widest">Active Objective</span>
                   </div>
                   
-                  <h3 className="text-4xl font-black mb-8 leading-tight neon-text-primary uppercase">
+                  <h3 className={`text-4xl font-black mb-8 leading-tight uppercase ${theme === 'light' ? 'text-black' : 'neon-text-primary'}`}>
                     {currentTask.title}
                   </h3>
                   
-                  <div className="flex justify-center items-center gap-8 mb-12 opacity-80">
+                  <div className={`flex justify-center items-center gap-8 mb-12 ${theme === 'light' ? 'text-black/80' : 'text-white opacity-80'}`}>
                     <div className="flex items-center gap-2 font-bold">
                         <Clock className="w-5 h-5 text-secondary" />
                         {currentTask.estimatedTime} min
@@ -403,30 +394,30 @@ export default function Dashboard() {
               className="w-full max-w-4xl mx-auto"
             >
                 <div className="flex justify-between items-center mb-8">
-                    <h2 className="text-3xl font-black neon-text-primary italic uppercase tracking-tighter">Mission Log</h2>
-                    <span className="badge badge-primary font-black italic border-none px-4 py-4">{tasks.length} PENDING</span>
+                    <h2 className={`text-3xl font-black italic uppercase tracking-tighter ${theme === 'light' ? 'text-black' : 'neon-text-primary'}`}>Mission Log</h2>
+                    <span className={`badge badge-primary font-black italic border-none px-4 py-4 ${theme === 'light' ? 'text-white' : 'text-white'}`}>{tasks.length} PENDING</span>
                 </div>
 
                 {tasks.length === 0 ? (
-                    <div className="glass-card rounded-3xl p-16 text-center opacity-70 border-white/5 mx-auto max-w-2xl">
-                        <div className="bg-primary/10 p-4 rounded-full w-fit mx-auto mb-6 border border-primary/20">
+                    <div className={`glass-card rounded-3xl p-16 text-center mx-auto max-w-2xl ${theme === 'light' ? 'text-black/70 border-black/10' : 'text-white opacity-70 border-white/5'}`}>
+                        <div className={`p-4 rounded-full w-fit mx-auto mb-6 border ${theme === 'light' ? 'bg-primary/10 border-primary/20' : 'bg-primary/10 border-primary/20'}`}>
                             <AlertCircle className="w-12 h-12 text-primary" />
                         </div>
-                        <p className="text-2xl font-black italic mb-2 uppercase">No active missions found.</p>
-                        <p className="text-sm opacity-60 mb-8 uppercase tracking-widest">Initialize a new goal to begin your climb.</p>
+                        <p className={`text-2xl font-black italic mb-2 uppercase ${theme === 'light' ? 'text-black' : 'text-white'}`}>No active missions found.</p>
+                        <p className={`text-sm mb-8 uppercase tracking-widest ${theme === 'light' ? 'text-black/60' : 'text-white/60'}`}>Initialize a new goal to begin your climb.</p>
                         <button onClick={() => setActiveTab('create')} className="btn btn-primary btn-md rounded-xl italic font-black">INITIALIZE GOAL</button>
                     </div>
                 ) : (
                     <div className="grid gap-4">
                         {tasks.map((task) => (
-                            <div key={task._id} className="glass-card p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4 hover:border-primary/50 transition-all group hover:bg-white/5">
+                            <div key={task._id} className={`glass-card p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4 transition-all group ${theme === 'light' ? 'text-black hover:text-primary hover:border-primary/50' : 'text-white hover:border-primary/50 hover:bg-white/5'}`}>
                                 <div className="flex items-center gap-4 w-full">
                                     <div className={`p-4 rounded-xl bg-primary/10 border border-primary/20 group-hover:neon-border-primary transition-all`}>
                                         <Zap className="w-5 h-5 text-primary fill-current" />
                                     </div>
                                     <div className="flex-1 text-left">
-                                        <h4 className="text-xl font-black group-hover:neon-text-primary transition-all uppercase tracking-tight">{task.title}</h4>
-                                        <div className="flex gap-4 mt-1 opacity-60 text-xs font-black uppercase tracking-widest">
+                                        <h4 className={`text-xl font-black uppercase tracking-tight group-hover:neon-text-primary transition-all ${theme === 'light' ? 'text-black' : 'text-white'}`}>{task.title}</h4>
+                                        <div className={`flex gap-4 mt-1 text-xs font-black uppercase tracking-widest ${theme === 'light' ? 'text-black/60' : 'text-white/60'}`}>
                                             <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {task.estimatedTime}m</span>
                                             <span className="flex items-center gap-1 text-secondary"><Sparkles className="w-3 h-3" /> Impact: {(task.importance || 5) * (task.urgency || 5)}</span>
                                         </div>
@@ -434,7 +425,7 @@ export default function Dashboard() {
                                 </div>
                                 <div className="flex gap-2 w-full sm:w-auto">
                                     <button onClick={() => markDone(task)} className="btn btn-primary btn-sm px-6 italic font-black rounded-lg">DONE</button>
-                                    <button onClick={() => skipTask(task)} className="btn btn-ghost btn-sm px-4 italic font-black opacity-40 hover:opacity-100 rounded-lg">SKIP</button>
+                                    <button onClick={() => skipTask(task)} className={`btn btn-ghost btn-sm px-4 italic font-black rounded-lg transition-opacity ${theme === 'light' ? 'opacity-40 hover:opacity-100 text-black' : 'opacity-40 hover:opacity-100'}`}>SKIP</button>
                                 </div>
                             </div>
                         ))}
@@ -453,16 +444,16 @@ export default function Dashboard() {
               className="w-full max-w-2xl mx-auto"
             >
               <div className="flex justify-center mb-10">
-                <div className="tabs tabs-boxed bg-base-200/50 backdrop-blur-md p-1 border border-white/5 rounded-xl">
+                <div className={`tabs tabs-boxed p-1 border rounded-xl backdrop-blur-md ${theme === 'light' ? 'bg-black/5 border-black/10' : 'bg-base-200/50 border-white/5'}`}>
                     <button 
                         onClick={() => setCreationMode('ai')}
-                        className={`tab tab-lg gap-2 rounded-lg font-black transition-all ${creationMode === 'ai' ? 'tab-active bg-primary text-white' : 'opacity-60'}`}
+                        className={`tab tab-lg gap-2 rounded-lg font-black transition-all ${creationMode === 'ai' ? 'tab-active bg-primary text-white' : `opacity-60 ${theme === 'light' ? 'text-black' : 'text-white'}`}`}
                     >
                         <Sparkles className="w-4 h-4" /> AI BRAINSTORM
                     </button>
                     <button 
                         onClick={() => setCreationMode('manual')}
-                        className={`tab tab-lg gap-2 rounded-lg font-black transition-all ${creationMode === 'manual' ? 'tab-active bg-primary text-white' : 'opacity-60'}`}
+                        className={`tab tab-lg gap-2 rounded-lg font-black transition-all ${creationMode === 'manual' ? 'tab-active bg-primary text-white' : `opacity-60 ${theme === 'light' ? 'text-black' : 'text-white'}`}`}
                     >
                         <List className="w-4 h-4" /> MANUAL INPUT
                     </button>
@@ -470,11 +461,11 @@ export default function Dashboard() {
               </div>
 
               {creationMode === 'ai' ? (
-                <div className="glass-card p-10 rounded-[2rem] border-primary/20 text-white">
-                    <h2 className="text-2xl font-black mb-6 italic neon-text-primary">DUMP YOUR BRAIN</h2>
-                    <p className="text-sm text-white/65 mb-6 font-medium uppercase tracking-widest">Type your overwhelming thoughts and let Gemini divide them.</p>
+                <div className={`glass-card p-10 rounded-[2rem] ${theme === 'light' ? 'text-black border-black/10' : 'text-white border-primary/20'}`}>
+                    <h2 className={`text-2xl font-black mb-6 italic ${theme === 'light' ? 'text-black' : 'neon-text-primary'}`}>DUMP YOUR BRAIN</h2>
+                    <p className={`text-sm mb-6 font-medium uppercase tracking-widest ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}>Type your overwhelming thoughts and let Gemini divide them.</p>
                     <textarea 
-                        className="textarea textarea-bordered textarea-lg w-full h-48 mb-8 bg-base-100/30 border-white/10 focus:border-primary text-xl leading-relaxed text-white placeholder:text-white/35"
+                        className={`textarea textarea-bordered textarea-lg w-full h-48 mb-8 ${theme === 'light' ? 'bg-black/5 border-black/10 text-black placeholder:text-black/35 focus:border-primary' : 'bg-base-100/30 border-white/10 text-white placeholder:text-white/35 focus:border-primary'}`}
                         placeholder="e.g., I need to launch my website, clean the garage, and find a gift for my friend's birthday..."
                         value={goal}
                         onChange={(e) => setGoal(e.target.value)}
@@ -489,15 +480,15 @@ export default function Dashboard() {
                     </button>
                 </div>
               ) : (
-                <form onSubmit={handleManualCreate} className="glass-card p-10 rounded-[2rem] border-primary/20 text-white">
-                    <h2 className="text-2xl font-black mb-8 italic neon-text-primary uppercase tracking-tight">New Mission Objective</h2>
+                <form onSubmit={handleManualCreate} className={`glass-card p-10 rounded-[2rem] ${theme === 'light' ? 'text-black border-black/10' : 'text-white border-primary/20'}`}>
+                    <h2 className={`text-2xl font-black mb-8 italic uppercase tracking-tight ${theme === 'light' ? 'text-black' : 'neon-text-primary'}`}>New Mission Objective</h2>
                     
                     <div className="grid gap-8">
                         <div className="form-control">
-                            <label className="label uppercase tracking-widest text-xs font-black text-white/65">Task Title</label>
+                            <label className={`label uppercase tracking-widest text-xs font-black ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}>Task Title</label>
                             <input 
                                 required
-                                className="input input-bordered bg-base-100/30 border-white/10 focus:border-primary text-lg text-white placeholder:text-white/35"
+                                className={`input input-bordered ${theme === 'light' ? 'bg-black/80 border-black/10 text-black placeholder:text-black/35' : 'bg-base-100/80 border-white/10 text-white placeholder:text-white/35'} focus:border-primary text-lg`}
                                 value={manualTask.title}
                                 onChange={(e) => setManualTask({...manualTask, title: e.target.value})}
                             />
@@ -505,9 +496,9 @@ export default function Dashboard() {
 
                         <div className="grid grid-cols-2 gap-6">
                             <div className="form-control">
-                                <label className="label uppercase tracking-widest text-xs font-black text-white/65">Importance</label>
+                                <label className={`label uppercase tracking-widest text-xs font-black ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}>Importance</label>
                                 <select 
-                                    className="select select-bordered bg-base-100/30 border-white/10 focus:border-primary text-white"
+                                    className={`select select-bordered ${theme === 'light' ? 'bg-black/90 border-black/10 text-black' : 'bg-base-100/90 border-white/10 text-white'} focus:border-primary`}
                                     value={manualTask.importance}
                                     onChange={(e) => setManualTask({...manualTask, importance: e.target.value})}
                                 >
@@ -518,10 +509,10 @@ export default function Dashboard() {
                                 </select>
                             </div>
                             <div className="form-control">
-                                <label className="label uppercase tracking-widest text-xs font-black text-white/65">Estimated Time (Min)</label>
+                                <label className={`label uppercase tracking-widest text-xs font-black ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}>Estimated Time (Min)</label>
                                 <input 
                                     type="number"
-                                    className="input input-bordered bg-base-100/30 border-white/10 focus:border-primary text-white"
+                                    className={`input input-bordered ${theme === 'light' ? 'bg-black/80 border-black/10 text-black' : 'bg-base-100/80 border-white/10 text-white'} focus:border-primary`}
                                     value={manualTask.estimatedTime}
                                     onChange={(e) => setManualTask({...manualTask, estimatedTime: e.target.value})}
                                 />
@@ -529,10 +520,10 @@ export default function Dashboard() {
                         </div>
 
                         <div className="form-control">
-                            <label className="label uppercase tracking-widest text-xs font-black text-white/65 font-medium flex gap-2"><Calendar className="w-4 h-4" /> Deadline (Optional)</label>
+                            <label className={`label uppercase tracking-widest text-xs font-black font-medium flex gap-2 ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}><Calendar className="w-4 h-4" /> Deadline (Optional)</label>
                             <input 
                                 type="date"
-                                className="input input-bordered bg-base-100/30 border-white/10 focus:border-primary text-white"
+                                className={`input input-bordered ${theme === 'light' ? 'bg-black/80 border-black/10 text-black' : 'bg-base-100/80 border-white/10 text-white'} focus:border-primary`}
                                 value={manualTask.deadline}
                                 onChange={(e) => setManualTask({...manualTask, deadline: e.target.value})}
                             />
@@ -563,10 +554,10 @@ export default function Dashboard() {
             exit={{ opacity: 0, scale: 1.2 }}
             className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
           >
-            <div className="glass-card text-center p-12 rounded-[3rem] shadow-[0_0_100px_rgba(37,99,235,0.4)] border-primary neon-border-primary">
+            <div className={`glass-card text-center p-12 rounded-[3rem] shadow-[0_0_100px_rgba(37,99,235,0.4)] neon-border-primary ${theme === 'light' ? 'text-black' : 'text-white'}`}>
               <Trophy className="w-20 h-20 text-warning mx-auto mb-6 drop-shadow-[0_0_20px_rgba(255,165,0,0.5)]" />
-              <h1 className="text-5xl font-black neon-text-primary italic tracking-tighter mb-2">MOMENTUM CRITICAL!</h1>
-              <p className="font-black text-xl uppercase tracking-widest opacity-80">+1 RANK ACHIEVED</p>
+              <h1 className={`text-5xl font-black italic tracking-tighter mb-2 ${theme === 'light' ? 'text-black' : 'neon-text-primary'}`}>MOMENTUM CRITICAL!</h1>
+              <p className={`font-black text-xl uppercase tracking-widest ${theme === 'light' ? 'text-black/80' : 'text-white/80'}`}>+1 RANK ACHIEVED</p>
             </div>
           </motion.div>
         )}

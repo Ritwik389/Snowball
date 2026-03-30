@@ -9,7 +9,7 @@ const ACTIONS: Array<{ match: string[]; href: string }> = [
   { match: ['how it works', 'how snowball works'], href: '/how-it-works' },
 ];
 
-const LIGHT_MODE_SCENE = 'https://prod.spline.design/Fx-5fuTVHm5Sm1U2/scene.splinecode';
+const LIGHT_MODE_SCENE = 'https://prod.spline.design/jUs4wqRIMRdVu313/scene.splinecode';
 const DARK_MODE_SCENE = 'https://prod.spline.design/6TzaWCytLe5704TI/scene.splinecode';
 
 export default function SplineBackground() {
