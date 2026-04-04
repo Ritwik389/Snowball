@@ -6,16 +6,15 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Zap, CheckCircle, SkipForward, ArrowLeft, Loader2, Trophy, 
-  Clock, Sun, Moon, List, PlusCircle, Sparkles, LayoutDashboard,
+  Clock, Sun, Moon, List, Sparkles, LayoutDashboard,
   Calendar, AlertCircle, Flame, Crosshair
 } from 'lucide-react';
 import axios from 'axios';
 import { getPriorityTask, calculatePotentialMomentum } from '@/shared/priorityPipeline';
 import { getCurrentBadge, getProgressToNextBadge, BADGES } from '@/shared/badges';
 import { useTheme } from '@/frontend/context/ThemeContext';
-import VantaBackground from '@/frontend/components/VantaBackground';
 
-const debounce = <T extends any[]>(
+const debounce = <T extends unknown[]>(
   fn: (...args: T) => Promise<void>,
   delay: number
 ) => {
@@ -45,12 +44,31 @@ type TaskItem = {
   createdAt?: string;
 };
 
+const formatDeadline = (deadline?: string | Date) => {
+  if (!deadline) return 'No date';
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(deadline));
+};
+
+const getPriorityLabel = (importance = 5, urgency = 5) => {
+  const score = importance * urgency;
+
+  if (score >= 70) return 'Critical';
+  if (score >= 40) return 'High';
+  if (score >= 20) return 'Medium';
+  return 'Low';
+};
+
 export default function Dashboard() {
   const { status } = useSession();
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
 
-  const [activeTab, setActiveTab] = useState<'focus' | 'tasks' | 'badges' | 'create'>('focus');
+  const [activeTab, setActiveTab] = useState<'focus' | 'tasks' | 'badges'>('focus');
   const [isLoading, setIsLoading] = useState(true);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [currentTask, setCurrentTask] = useState<TaskItem | null>(null);
@@ -60,10 +78,6 @@ export default function Dashboard() {
   
   const [creationMode, setCreationMode] = useState<'ai' | 'manual'>('ai');
   const [goal, setGoal] = useState('');
-  const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
-  const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
-  const [taskDeadlines, setTaskDeadlines] = useState<{ [key: number]: string }>({});
-  const [showDeadlineModal, setShowDeadlineModal] = useState(false);
   const [manualTask, setManualTask] = useState({
     title: '',
     importance: '5',
@@ -172,10 +186,11 @@ export default function Dashboard() {
     try {
       const { data } = await axios.post('/api/generate-tasks', { goal });
       const tasks = Array.isArray(data.tasks) ? data.tasks as GeneratedTask[] : [];
-      setGeneratedTasks(tasks);
-      setCurrentTaskIndex(0);
-      setTaskDeadlines({});
-      setShowDeadlineModal(true);
+
+      if (tasks.length > 0) {
+        await saveGeneratedTasks(tasks);
+      }
+
       setGoal('');
     } catch (err) {
       console.error(err);
@@ -184,34 +199,18 @@ export default function Dashboard() {
     }
   };
 
-  const handleSetDeadline = async (index: number, deadline: string) => {
-    const updated = { ...taskDeadlines, [index]: deadline };
-    setTaskDeadlines(updated);
-    
-    if (index < generatedTasks.length - 1) {
-      setCurrentTaskIndex(index + 1);
-    } else {
-      await saveGeneratedTasks(updated);
-    }
-  };
-
-  const saveGeneratedTasks = async (deadlines: { [key: number]: string }) => {
+  const saveGeneratedTasks = async (tasksToSave: GeneratedTask[]) => {
     try {
       await Promise.all(
-        generatedTasks.map((task, idx) => {
-          const deadlineDate = new Date(deadlines[idx]);
-          deadlineDate.setHours(23, 59, 59, 0);
-          return axios.post('/api/tasks', {
+        tasksToSave.map((task) =>
+          axios.post('/api/tasks', {
             title: task.title,
             estimatedTime: task.estimated_time_minutes,
             importance: task.importance_score,
             urgency: task.urgency_score,
-            deadline: deadlineDate.toISOString()
-          });
-        })
+          })
+        )
       );
-      setShowDeadlineModal(false);
-      setGeneratedTasks([]);
       await fetchTasks();
       setActiveTab('tasks');
     } catch (err) {
@@ -241,7 +240,7 @@ export default function Dashboard() {
 
   const handleJustDoIt = () => {
     if (tasks.length === 0) {
-      setActiveTab('create');
+      setActiveTab('tasks');
       return;
     }
     const mappedTasks = tasks.map((t) => ({
@@ -315,7 +314,6 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col min-h-screen relative overflow-x-hidden transition-colors duration-500" data-theme={theme}>
-      <VantaBackground />
       <div className="fixed inset-0 synth-grid pointer-events-none opacity-20 z-0"></div>
 
       <header className={`relative z-20 backdrop-blur-md ${theme === 'light' ? 'border-b border-black/10 bg-white/25' : 'border-b border-white/5 bg-base-100/25'}`}>
@@ -404,13 +402,6 @@ export default function Dashboard() {
           >
             <Trophy className="w-4 h-4" />
             Badges
-          </button>
-          <button 
-            onClick={() => setActiveTab('create')}
-            className={`btn btn-sm sm:btn-md gap-2 rounded-xl transition-all duration-300 ${activeTab === 'create' ? 'btn-primary neon-border-primary' : `btn-ghost ${theme === 'light' ? 'text-black' : 'text-white'}`}`}
-          >
-            <PlusCircle className="w-4 h-4" />
-            Create
           </button>
         </div>
       </nav>
@@ -562,46 +553,205 @@ export default function Dashboard() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="w-full max-w-4xl mx-auto"
+              className="w-full max-w-6xl mx-auto"
             >
-                <div className="flex justify-between items-center mb-8">
-                    <h2 className={`text-3xl font-black italic uppercase tracking-tighter ${theme === 'light' ? 'text-black' : 'neon-text-primary'}`}>Mission Log</h2>
-                    <span className={`badge badge-primary font-black italic border-none px-4 py-4 ${theme === 'light' ? 'text-white' : 'text-white'}`}>{tasks.length} PENDING</span>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-8">
+                <div>
+                  <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${theme === 'light' ? 'text-black/40' : 'text-white/40'}`}>Tasks</p>
+                  <h2 className={`mt-2 text-4xl font-semibold tracking-tight ${theme === 'light' ? 'text-black' : 'text-white'}`}>Task database</h2>
+                  <p className={`mt-2 text-sm ${theme === 'light' ? 'text-black/55' : 'text-white/55'}`}>Create tasks and manage your queue in one calm workspace.</p>
+                </div>
+                <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm ${theme === 'light' ? 'border-black/10 bg-white/80 text-black/70' : 'border-white/10 bg-white/5 text-white/70'}`}>
+                  <span className={`h-2 w-2 rounded-full ${tasks.length > 0 ? 'bg-emerald-500' : 'bg-zinc-400'}`}></span>
+                  {tasks.length} open tasks
+                </div>
+              </div>
+
+              <div className="grid gap-6 xl:grid-cols-[minmax(320px,380px)_minmax(0,1fr)] xl:items-start">
+                <div className={`rounded-[1.5rem] border p-5 sm:p-6 ${theme === 'light' ? 'border-black/10 bg-[#fbfbfa] text-black shadow-[0_18px_60px_rgba(15,23,42,0.06)]' : 'border-white/10 bg-[#191919] text-white shadow-[0_18px_60px_rgba(0,0,0,0.22)]'}`}>
+                  <div className="mb-6">
+                    <p className={`text-xs font-medium uppercase tracking-[0.18em] ${theme === 'light' ? 'text-black/40' : 'text-white/40'}`}>New</p>
+                    <h3 className={`mt-2 text-2xl font-semibold tracking-tight ${theme === 'light' ? 'text-black' : 'text-white'}`}>Add a task</h3>
+                    <p className={`mt-2 text-sm leading-6 ${theme === 'light' ? 'text-black/55' : 'text-white/55'}`}>Use AI for a quick breakdown or enter a task manually like a Notion database row.</p>
+                  </div>
+
+                  <div className={`mb-6 inline-flex rounded-xl border p-1 ${theme === 'light' ? 'border-black/10 bg-white' : 'border-white/10 bg-black/20'}`}>
+                    <button 
+                      onClick={() => setCreationMode('ai')}
+                      className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${creationMode === 'ai' ? 'bg-primary text-white shadow-sm' : `${theme === 'light' ? 'text-black/55 hover:bg-black/5' : 'text-white/60 hover:bg-white/5'}`}`}
+                    >
+                      <Sparkles className="w-4 h-4" /> AI
+                    </button>
+                    <button 
+                      onClick={() => setCreationMode('manual')}
+                      className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${creationMode === 'manual' ? 'bg-primary text-white shadow-sm' : `${theme === 'light' ? 'text-black/55 hover:bg-black/5' : 'text-white/60 hover:bg-white/5'}`}`}
+                    >
+                      <List className="w-4 h-4" /> Manual
+                    </button>
+                  </div>
+
+                  {creationMode === 'ai' ? (
+                    <div>
+                      <h3 className={`text-lg font-semibold ${theme === 'light' ? 'text-black' : 'text-white'}`}>Brainstorm from a larger goal</h3>
+                      <p className={`mt-2 text-sm leading-6 ${theme === 'light' ? 'text-black/55' : 'text-white/55'}`}>Paste the bigger project and Snowball will turn it into a short list of actionable tasks.</p>
+                      <textarea 
+                        className={`mt-5 min-h-48 w-full rounded-2xl border px-4 py-4 text-sm outline-none transition-colors ${theme === 'light' ? 'border-black/10 bg-white text-black placeholder:text-black/30 focus:border-primary' : 'border-white/10 bg-[#111111] text-white placeholder:text-white/30 focus:border-primary'}`}
+                        placeholder="Write a project, goal, or messy brain dump..."
+                        value={goal}
+                        onChange={(e) => setGoal(e.target.value)}
+                      />
+                      <button 
+                        className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                        onClick={handleAIGenerate}
+                        disabled={!goal || isLoading}
+                      >
+                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Generate tasks'}
+                        <Sparkles className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleManualCreate}>
+                      <h3 className={`text-lg font-semibold ${theme === 'light' ? 'text-black' : 'text-white'}`}>Create manually</h3>
+                      
+                      <div className="mt-5 grid gap-5">
+                        <div className="form-control">
+                          <label className={`mb-2 text-xs font-medium uppercase tracking-[0.16em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>Title</label>
+                          <input 
+                            required
+                            placeholder="Write a concise task name"
+                            className={`h-11 rounded-xl border px-4 text-sm outline-none transition-colors ${theme === 'light' ? 'border-black/10 bg-white text-black placeholder:text-black/35 focus:border-primary' : 'border-white/10 bg-[#111111] text-white placeholder:text-white/35 focus:border-primary'}`}
+                            value={manualTask.title}
+                            onChange={(e) => setManualTask({...manualTask, title: e.target.value})}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="form-control">
+                            <label className={`mb-2 text-xs font-medium uppercase tracking-[0.16em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>Importance</label>
+                            <select 
+                              className={`h-11 rounded-xl border px-4 text-sm outline-none transition-colors ${theme === 'light' ? 'border-black/10 bg-white text-black focus:border-primary' : 'border-white/10 bg-[#111111] text-white focus:border-primary'}`}
+                              value={manualTask.importance}
+                              onChange={(e) => setManualTask({...manualTask, importance: e.target.value})}
+                            >
+                              <option value="1">Low</option>
+                              <option value="5">Medium</option>
+                              <option value="9">High</option>
+                              <option value="10">Critical</option>
+                            </select>
+                          </div>
+                          <div className="form-control">
+                            <label className={`mb-2 text-xs font-medium uppercase tracking-[0.16em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>Time</label>
+                            <input 
+                              type="number"
+                              className={`h-11 rounded-xl border px-4 text-sm outline-none transition-colors ${theme === 'light' ? 'border-black/10 bg-white text-black placeholder:text-black/35 focus:border-primary' : 'border-white/10 bg-[#111111] text-white placeholder:text-white/35 focus:border-primary'}`}
+                              value={manualTask.estimatedTime}
+                              onChange={(e) => setManualTask({...manualTask, estimatedTime: e.target.value})}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="form-control">
+                          <label className={`mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}><Calendar className="w-4 h-4" /> Deadline</label>
+                          <input 
+                            type="date"
+                            className={`h-11 rounded-xl border px-4 text-sm outline-none transition-colors ${theme === 'light' ? 'border-black/10 bg-white text-black placeholder:text-black/35 focus:border-primary' : 'border-white/10 bg-[#111111] text-white placeholder:text-white/35 focus:border-primary'}`}
+                            value={manualTask.deadline}
+                            onChange={(e) => setManualTask({...manualTask, deadline: e.target.value})}
+                            required
+                          />
+                          <p className={`mt-2 text-xs ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>Due at 11:59 PM on this date.</p>
+                        </div>
+
+                        <button 
+                          type="submit"
+                          className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                          disabled={isLoading}
+                        >
+                          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add task'}
+                          <Zap className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
 
-                {tasks.length === 0 ? (
-                    <div className={`glass-card rounded-3xl p-16 text-center mx-auto max-w-2xl ${theme === 'light' ? 'text-black/70 border-black/10' : 'text-white opacity-70 border-white/5'}`}>
-                        <div className={`p-4 rounded-full w-fit mx-auto mb-6 border ${theme === 'light' ? 'bg-primary/10 border-primary/20' : 'bg-primary/10 border-primary/20'}`}>
-                            <AlertCircle className="w-12 h-12 text-primary" />
-                        </div>
-                        <p className={`text-2xl font-black italic mb-2 uppercase ${theme === 'light' ? 'text-black' : 'text-white'}`}>No active missions found.</p>
-                        <p className={`text-sm mb-8 uppercase tracking-widest ${theme === 'light' ? 'text-black/60' : 'text-white/60'}`}>Initialize a new goal to begin your climb.</p>
-                        <button onClick={() => setActiveTab('create')} className="btn btn-primary btn-md rounded-xl italic font-black">INITIALIZE GOAL</button>
+                <div className={`overflow-hidden rounded-[1.5rem] border ${theme === 'light' ? 'border-black/10 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.06)]' : 'border-white/10 bg-[#191919] shadow-[0_18px_60px_rgba(0,0,0,0.22)]'}`}>
+                  <div className={`flex items-center justify-between border-b px-5 py-4 sm:px-6 ${theme === 'light' ? 'border-black/8 bg-[#fbfbfa]' : 'border-white/10 bg-black/10'}`}>
+                    <div>
+                      <h3 className={`text-xl font-semibold tracking-tight ${theme === 'light' ? 'text-black' : 'text-white'}`}>All tasks</h3>
+                      <p className={`mt-1 text-sm ${theme === 'light' ? 'text-black/50' : 'text-white/50'}`}>A simple view of what is open right now.</p>
                     </div>
-                ) : (
-                    <div className="grid gap-4">
-                        {tasks.map((task) => (
-                            <div key={task._id} className={`glass-card p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4 transition-all group ${theme === 'light' ? 'text-black hover:text-primary hover:border-primary/50' : 'text-white hover:border-primary/50 hover:bg-white/5'}`}>
-                                <div className="flex items-center gap-4 w-full">
-                                    <div className={`p-4 rounded-xl bg-primary/10 border border-primary/20 group-hover:neon-border-primary transition-all`}>
-                                        <Zap className="w-5 h-5 text-primary fill-current" />
-                                    </div>
-                                    <div className="flex-1 text-left">
-                                        <h4 className={`text-xl font-black uppercase tracking-tight group-hover:neon-text-primary transition-all ${theme === 'light' ? 'text-black' : 'text-white'}`}>{task.title}</h4>
-                                        <div className={`flex gap-4 mt-1 text-xs font-black uppercase tracking-widest ${theme === 'light' ? 'text-black/60' : 'text-white/60'}`}>
-                                            <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {task.estimatedTime}m</span>
-                                            <span className="flex items-center gap-1 text-secondary"><Sparkles className="w-3 h-3" /> Impact: {(task.importance || 5) * (task.urgency || 5)}</span>
-                                        </div>
-                                    </div>
+                    <span className={`rounded-full px-3 py-1 text-xs font-medium ${theme === 'light' ? 'bg-black/5 text-black/60' : 'bg-white/8 text-white/60'}`}>Table view</span>
+                  </div>
+
+                  <div className={`hidden sm:grid grid-cols-[minmax(0,1.6fr)_88px_96px_112px_120px] gap-3 px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] sm:px-6 ${theme === 'light' ? 'border-b border-black/8 text-black/40' : 'border-b border-white/10 text-white/40'}`}>
+                    <span>Task</span>
+                    <span>Time</span>
+                    <span>Priority</span>
+                    <span>Deadline</span>
+                    <span>Actions</span>
+                  </div>
+
+                  {tasks.length === 0 ? (
+                    <div className={`px-6 py-16 text-center ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}>
+                      <div className={`mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl ${theme === 'light' ? 'bg-black/5' : 'bg-white/5'}`}>
+                        <AlertCircle className="w-5 h-5 text-primary" />
+                      </div>
+                      <p className={`text-lg font-semibold ${theme === 'light' ? 'text-black' : 'text-white'}`}>No tasks yet</p>
+                      <p className="mt-2 text-sm">Use the left panel to add your first row.</p>
+                    </div>
+                  ) : (
+                    <div>
+                      {tasks.map((task) => {
+                        const priorityLabel = getPriorityLabel(task.importance, task.urgency);
+
+                        return (
+                          <div key={task._id} className={`grid grid-cols-1 gap-3 px-5 py-4 transition-colors sm:grid-cols-[minmax(0,1.6fr)_88px_96px_112px_120px] sm:items-center sm:px-6 ${theme === 'light' ? 'border-t border-black/6 hover:bg-black/[0.025]' : 'border-t border-white/8 hover:bg-white/[0.025]'}`}>
+                            <div className="min-w-0">
+                              <div className="flex items-start gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => markDone(task)}
+                                  className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors ${theme === 'light' ? 'border-black/15 hover:border-primary hover:bg-primary/5' : 'border-white/15 hover:border-primary hover:bg-primary/10'}`}
+                                  aria-label={`Mark ${task.title} done`}
+                                >
+                                  <CheckCircle className="w-3.5 h-3.5 text-primary" />
+                                </button>
+                                <div className="min-w-0">
+                                  <p className={`truncate text-sm font-medium ${theme === 'light' ? 'text-black' : 'text-white'}`}>{task.title}</p>
+                                  <p className={`mt-1 text-xs ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>Impact score {(task.importance || 5) * (task.urgency || 5)}</p>
                                 </div>
-                                <div className="flex gap-2 w-full sm:w-auto">
-                                    <button onClick={() => markDone(task)} className="btn btn-primary btn-sm px-6 italic font-black rounded-lg">DONE</button>
-                                    <button onClick={() => skipTask(task)} className={`btn btn-ghost btn-sm px-4 italic font-black rounded-lg transition-opacity ${theme === 'light' ? 'opacity-40 hover:opacity-100 text-black' : 'opacity-40 hover:opacity-100'}`}>SKIP</button>
-                                </div>
+                              </div>
                             </div>
-                        ))}
+
+                            <div className={`text-sm ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}>{task.estimatedTime}m</div>
+                            <div>
+                              <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                                priorityLabel === 'Critical'
+                                  ? 'bg-red-500/12 text-red-500'
+                                  : priorityLabel === 'High'
+                                    ? 'bg-amber-500/12 text-amber-600'
+                                    : priorityLabel === 'Medium'
+                                      ? 'bg-blue-500/12 text-blue-500'
+                                      : theme === 'light'
+                                        ? 'bg-black/6 text-black/55'
+                                        : 'bg-white/8 text-white/55'
+                              }`}>
+                                {priorityLabel}
+                              </span>
+                            </div>
+                            <div className={`text-sm ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}>{formatDeadline(task.deadline)}</div>
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => markDone(task)} className={`inline-flex h-8 items-center justify-center rounded-lg px-3 text-xs font-medium ${theme === 'light' ? 'bg-black text-white hover:bg-black/85' : 'bg-white text-black hover:bg-white/85'}`}>Done</button>
+                              <button onClick={() => skipTask(task)} className={`inline-flex h-8 items-center justify-center rounded-lg px-3 text-xs font-medium ${theme === 'light' ? 'bg-black/5 text-black/60 hover:bg-black/10' : 'bg-white/8 text-white/65 hover:bg-white/12'}`}>Skip</button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                )}
+                  )}
+                </div>
+              </div>
             </motion.div>
           )}
 
@@ -696,116 +846,6 @@ export default function Dashboard() {
             </motion.div>
           )}
 
-          {activeTab === 'create' && (
-            <motion.div 
-              key="create"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-              className="w-full max-w-2xl mx-auto"
-            >
-              <div className="flex justify-center mb-10">
-                <div className={`tabs tabs-boxed p-1 border rounded-xl backdrop-blur-md ${theme === 'light' ? 'bg-black/5 border-black/10' : 'bg-base-200/50 border-white/5'}`}>
-                    <button 
-                        onClick={() => setCreationMode('ai')}
-                        className={`tab tab-lg gap-2 rounded-lg font-black transition-all ${creationMode === 'ai' ? 'tab-active bg-primary text-white' : `opacity-60 ${theme === 'light' ? 'text-black' : 'text-white'}`}`}
-                    >
-                        <Sparkles className="w-4 h-4" /> AI BRAINSTORM
-                    </button>
-                    <button 
-                        onClick={() => setCreationMode('manual')}
-                        className={`tab tab-lg gap-2 rounded-lg font-black transition-all ${creationMode === 'manual' ? 'tab-active bg-primary text-white' : `opacity-60 ${theme === 'light' ? 'text-black' : 'text-white'}`}`}
-                    >
-                        <List className="w-4 h-4" /> MANUAL INPUT
-                    </button>
-                </div>
-              </div>
-
-              {creationMode === 'ai' ? (
-                <div className={`glass-card p-10 rounded-[2rem] ${theme === 'light' ? 'text-black border-black/10' : 'text-white border-primary/20'}`}>
-                    <h2 className={`text-2xl font-black mb-6 italic ${theme === 'light' ? 'text-black' : 'neon-text-primary'}`}>DUMP YOUR BRAIN</h2>
-                    <p className={`text-sm mb-6 font-medium uppercase tracking-widest ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}>Type your overwhelming thoughts and let Gemini divide them.</p>
-                    <textarea 
-                        className={`textarea textarea-bordered textarea-lg w-full h-48 mb-8 ${theme === 'light' ? 'bg-black/5 border-black/10 text-black placeholder:text-black/35 focus:border-primary' : 'bg-base-100/30 border-white/10 text-white placeholder:text-white/35 focus:border-primary'}`}
-                        placeholder="e.g., I need to launch my website, clean the garage, and find a gift for my friend's birthday..."
-                        value={goal}
-                        onChange={(e) => setGoal(e.target.value)}
-                    />
-                    <button 
-                        className="btn btn-primary btn-block btn-lg rounded-2xl h-16 shadow-lg shadow-primary/20 font-black italic text-xl text-white"
-                        onClick={handleAIGenerate}
-                        disabled={!goal || isLoading}
-                    >
-                        {isLoading ? <Loader2 className="animate-spin" /> : 'EXECUTE SNOWBALL'}
-                        <Sparkles className="w-5 h-5 ml-2" />
-                    </button>
-                </div>
-              ) : (
-                <form onSubmit={handleManualCreate} className={`glass-card p-10 rounded-[2rem] ${theme === 'light' ? 'text-black border-black/10' : 'text-white border-primary/20'}`}>
-                    <h2 className={`text-2xl font-black mb-8 italic uppercase tracking-tight ${theme === 'light' ? 'text-black' : 'neon-text-primary'}`}>New Mission Objective</h2>
-                    
-                    <div className="grid gap-8">
-                        <div className="form-control">
-                            <label className={`label uppercase tracking-widest text-xs font-black ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}>Task Title</label>
-                            <input 
-                                required
-                                placeholder="Write a concise task name"
-                                className={`input input-bordered ${theme === 'light' ? 'bg-white/90 border-black/15 text-black placeholder:text-black/45' : 'bg-base-100/80 border-white/10 text-white placeholder:text-white/35'} focus:border-primary text-lg`}
-                                value={manualTask.title}
-                                onChange={(e) => setManualTask({...manualTask, title: e.target.value})}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-6">
-                            <div className="form-control">
-                                <label className={`label uppercase tracking-widest text-xs font-black ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}>Importance</label>
-                                <select 
-                                    className={`select select-bordered ${theme === 'light' ? 'bg-white/90 border-black/15 text-black' : 'bg-base-100/90 border-white/10 text-white'} focus:border-primary`}
-                                    value={manualTask.importance}
-                                    onChange={(e) => setManualTask({...manualTask, importance: e.target.value})}
-                                >
-                                    <option value="1">Low</option>
-                                    <option value="5">Medium</option>
-                                    <option value="9">High</option>
-                                    <option value="10">Critical</option>
-                                </select>
-                            </div>
-                            <div className="form-control">
-                                <label className={`label uppercase tracking-widest text-xs font-black ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}>Estimated Time (Min)</label>
-                                <input 
-                                    type="number"
-                                    className={`input input-bordered ${theme === 'light' ? 'bg-white/90 border-black/15 text-black placeholder:text-black/45' : 'bg-base-100/80 border-white/10 text-white placeholder:text-white/35'} focus:border-primary`}
-                                    value={manualTask.estimatedTime}
-                                    onChange={(e) => setManualTask({...manualTask, estimatedTime: e.target.value})}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="form-control">
-                            <label className={`label uppercase tracking-widest text-xs font-black font-medium flex gap-2 ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}><Calendar className="w-4 h-4" /> Deadline</label>
-                            <input 
-                                type="date"
-                                className={`input input-bordered ${theme === 'light' ? 'bg-white/90 border-black/15 text-black placeholder:text-black/45' : 'bg-base-100/80 border-white/10 text-white placeholder:text-white/35'} focus:border-primary`}
-                                value={manualTask.deadline}
-                                onChange={(e) => setManualTask({...manualTask, deadline: e.target.value})}
-                                required
-                            />
-                            <p className={`text-xs mt-1 ${theme === 'light' ? 'text-black/50' : 'text-white/50'}`}>Due at 11:59 PM on this date</p>
-                        </div>
-
-                        <button 
-                            type="submit"
-                            className="btn btn-primary btn-block btn-lg rounded-2xl h-16 shadow-lg shadow-primary/20 font-black italic text-xl text-white mt-4"
-                            disabled={isLoading}
-                        >
-                            {isLoading ? <Loader2 className="animate-spin" /> : 'INITIALIZE MISSION'}
-                            <Zap className="w-5 h-5 ml-2" />
-                        </button>
-                    </div>
-                </form>
-              )}
-            </motion.div>
-          )}
         </AnimatePresence>
       </main>
 
@@ -837,74 +877,6 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {showDeadlineModal && generatedTasks.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className={`glass-card rounded-[2rem] p-8 max-w-md w-full shadow-2xl ${theme === 'light' ? 'text-black border-black/10' : 'text-white border-white/10'}`}
-            >
-              <div className="mb-8">
-                <p className={`text-xs font-black uppercase tracking-[0.25em] ${theme === 'light' ? 'text-black/50' : 'text-white/50'}`}>
-                  Task {currentTaskIndex + 1} of {generatedTasks.length}
-                </p>
-                <h3 className={`text-2xl font-black mt-3 mb-4 ${theme === 'light' ? 'text-black' : 'text-primary'}`}>
-                  {generatedTasks[currentTaskIndex]?.title}
-                </h3>
-                <div className={`flex gap-4 text-sm font-medium mb-6 ${theme === 'light' ? 'text-black/60' : 'text-white/60'}`}>
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    {generatedTasks[currentTaskIndex]?.estimated_time_minutes}m
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Sparkles className="w-4 h-4" />
-                    {generatedTasks[currentTaskIndex]?.importance_score ?? 5} importance
-                  </span>
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <label className={`label uppercase tracking-widest text-xs font-black mb-3 ${theme === 'light' ? 'text-black/65' : 'text-white/65'}`}>
-                  <Calendar className="w-4 h-4 mr-1" /> When is this due?
-                </label>
-                <input
-                  type="date"
-                  className={`input input-bordered w-full h-12 ${theme === 'light' ? 'bg-black/80 border-black/10 text-white' : 'bg-base-100/80 border-white/10 text-white'} focus:border-primary`}
-                  value={taskDeadlines[currentTaskIndex] || ''}
-                  onChange={(e) => setTaskDeadlines({ ...taskDeadlines, [currentTaskIndex]: e.target.value })}
-                />
-                <p className={`text-xs mt-2 ${theme === 'light' ? 'text-black/50' : 'text-white/50'}`}>
-                  Time defaults to 11:59 PM if not specified
-                </p>
-              </div>
-
-              <div className="flex gap-3">
-                {currentTaskIndex > 0 && (
-                  <button
-                    onClick={() => setCurrentTaskIndex(currentTaskIndex - 1)}
-                    className={`btn btn-ghost flex-1 rounded-xl ${theme === 'light' ? 'text-black border-black/10' : 'text-white border-white/10'}`}
-                  >
-                    Back
-                  </button>
-                )}
-                <button
-                  onClick={() => handleSetDeadline(currentTaskIndex, taskDeadlines[currentTaskIndex] || '')}
-                  disabled={!taskDeadlines[currentTaskIndex]}
-                  className="btn btn-primary flex-1 rounded-xl font-black italic"
-                >
-                  {currentTaskIndex === generatedTasks.length - 1 ? 'Deploy Missions' : 'Next Task'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

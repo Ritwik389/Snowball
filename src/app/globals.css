@@ -126,3 +126,7 @@
   height: 100%;
   z-index: -1;
 }
+
+.landing-spline a[href*="spline.design"] {
+  display: none !important;
+}

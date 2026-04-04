@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Zap, Mail, Lock, User, Loader2, ArrowRight, Sun, Moon, Trophy, ShieldCheck } from 'lucide-react';
-import VantaBackground from '@/frontend/components/VantaBackground';
 import { useTheme } from '@/frontend/context/ThemeContext';
 import axios from 'axios';
 
@@ -37,7 +36,6 @@ export default function SignUpPage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden px-4 py-10">
-      <VantaBackground />
       <div className="fixed inset-0 synth-grid pointer-events-none opacity-20 z-0"></div>
 
       <button

@@ -4,26 +4,12 @@ import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import SplineBackground from '@/frontend/components/SplineBackground';
-import { useTheme } from '@/frontend/context/ThemeContext';
-import { Sun, Moon, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 export default function LandingPage() {
-  const { theme, toggleTheme } = useTheme();
-
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-10">
-      <SplineBackground />
-      
-      <div className="absolute top-8 right-8 z-20">
-        <button 
-          onClick={toggleTheme}
-          className={`btn btn-circle btn-ghost border shadow-xl backdrop-blur-md ${theme === 'light' ? 'border-black/10 bg-white/20 text-black' : 'border-white/10 bg-base-100/20 text-white'}`}
-        >
-          <span suppressHydrationWarning>
-            {theme === 'light' ? <Moon className="w-5 h-5 text-black" /> : <Sun className="w-5 h-5 text-yellow-400" />}
-          </span>
-        </button>
-      </div>
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#040816] px-4 py-10 text-white">
+      <SplineBackground forceTheme="synthwave" />
 
       <div className="relative z-20 mt-auto mb-14 flex w-full max-w-[14rem] flex-col items-center gap-3">
         <motion.div
@@ -65,7 +51,7 @@ export default function LandingPage() {
 
         <Link
           href="/how-it-works"
-          className={`btn h-10 w-full rounded-xl border px-5 text-xs font-black uppercase tracking-[0.16em] backdrop-blur-md hover:bg-base-100/30 ${theme === 'light' ? 'border-black/15 bg-white/20 text-black hover:bg-black/10' : 'border-white/15 bg-base-100/20 text-white'}`}
+          className="btn h-10 w-full rounded-xl border border-white/15 bg-base-100/20 px-5 text-xs font-black uppercase tracking-[0.16em] text-white backdrop-blur-md hover:bg-base-100/30"
         >
           How It Works
         </Link>

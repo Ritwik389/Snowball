@@ -12,11 +12,16 @@ const ACTIONS: Array<{ match: string[]; href: string }> = [
 const LIGHT_MODE_SCENE = 'https://prod.spline.design/jUs4wqRIMRdVu313/scene.splinecode';
 const DARK_MODE_SCENE = 'https://prod.spline.design/6TzaWCytLe5704TI/scene.splinecode';
 
-export default function SplineBackground() {
+type SplineBackgroundProps = {
+  forceTheme?: 'light' | 'synthwave';
+};
+
+export default function SplineBackground({ forceTheme }: SplineBackgroundProps) {
   const router = useRouter();
   const { theme } = useTheme();
+  const activeTheme = forceTheme ?? theme;
 
-  const scene = theme === 'light' ? LIGHT_MODE_SCENE : DARK_MODE_SCENE;
+  const scene = activeTheme === 'light' ? LIGHT_MODE_SCENE : DARK_MODE_SCENE;
 
   const handleSplineAction = (event: SplineEvent) => {
     const targetName = event.target.name?.trim().toLowerCase();
@@ -41,9 +46,9 @@ export default function SplineBackground() {
   };
 
   return (
-    <div className="fixed inset-0 z-0">
+    <div className="landing-spline fixed inset-0 z-0">
       <Spline
-        key={theme}
+        key={activeTheme}
         scene={scene}
         onSplineMouseDown={handleSplineAction}
         onSplineMouseUp={handleSplineAction}

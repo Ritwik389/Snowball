@@ -4,8 +4,7 @@ import React, { useState, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Zap, Mail, Lock, Loader2, ArrowRight, Trophy, ShieldCheck, Sun, Moon } from 'lucide-react';
-import VantaBackground from '@/frontend/components/VantaBackground';
+import { Zap, Mail, Lock, Loader2, ArrowRight, Trophy, ShieldCheck, Sun, Moon, ArrowLeft } from 'lucide-react';
 import { useTheme } from '@/frontend/context/ThemeContext';
 
 function SignInForm() {
@@ -46,7 +45,6 @@ function SignInForm() {
 
   return (
     <main className="relative min-h-screen overflow-hidden px-4 py-10">
-      <VantaBackground />
       <div className="fixed inset-0 synth-grid pointer-events-none opacity-20 z-0"></div>
 
       <button
@@ -61,6 +59,18 @@ function SignInForm() {
         )}
       </button>
 
+      <Link
+        href="/"
+        className={`fixed left-6 top-6 z-50 inline-flex items-center gap-2 rounded-full border px-4 py-3 text-xs font-black uppercase tracking-[0.22em] backdrop-blur-md transition ${
+          theme === 'light'
+            ? 'border-black/10 bg-white/75 text-black hover:bg-white'
+            : 'border-white/10 bg-base-100/40 text-white hover:bg-base-100/60'
+        }`}
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back
+      </Link>
+
       <div className="relative z-10 mx-auto grid min-h-screen w-full max-w-6xl items-center gap-8 lg:grid-cols-[1fr_460px]">
         <section className={`hidden lg:block ${theme === 'light' ? 'text-black' : 'text-white'}`}>
           <span className={`inline-flex rounded-full border ${theme === 'light' ? 'border-black/10 bg-black/5 text-black/60' : 'border-white/10 bg-white/10 text-white/70'} px-4 py-2 text-xs font-black uppercase tracking-[0.3em]`}>
@@ -68,7 +78,9 @@ function SignInForm() {
           </span>
           <h1 className={`mt-6 max-w-3xl text-6xl font-black uppercase leading-[0.92] tracking-tight ${theme === 'light' ? 'text-black' : 'text-white'}`}>
             Lock in.
-            <span className="block neon-text-primary">Stack wins.</span>
+            <span className="block text-blue-600 drop-shadow-[0_0_18px_rgba(59,130,246,0.45)] dark:text-sky-400 dark:drop-shadow-[0_0_22px_rgba(56,189,248,0.55)]">
+              Stack wins.
+            </span>
             <span className={`block ${theme === 'light' ? 'text-black/50' : 'text-white/70'}`}>Build momentum.</span>
           </h1>
           <p className={`mt-6 max-w-xl text-lg font-medium leading-relaxed ${theme === 'light' ? 'text-black/70' : 'text-white/72'}`}>
