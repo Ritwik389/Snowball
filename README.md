@@ -82,8 +82,10 @@ Try Snowball now: **[https://snowball-peach.vercel.app/](https://snowball-peach.
 ---
 
 ## 📸 Screenshots
+<img width="1710" height="951" alt="image" src="https://github.com/user-attachments/assets/7b83509e-d3cb-42d9-b3c3-dc3850848af5" />
 
-Coming soon! Add your app screenshots here.
+<img width="1710" height="950" alt="image" src="https://github.com/user-attachments/assets/d9006bce-806d-4573-b002-1fc445922bfe" />
+
 
 ---
 
@@ -146,12 +148,6 @@ If you run into any issues:
 1. Make sure all environment variables are set correctly in `.env.local`
 2. Verify your MongoDB and Redis connections
 3. Check that Node.js version is v18 or higher
-
----
-
-## 📄 License
-
-This project is private. For more information, contact the maintainers.
 
 ---
 
