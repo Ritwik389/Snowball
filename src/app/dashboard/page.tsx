@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Zap, CheckCircle, SkipForward, ArrowLeft, Loader2, Trophy, 
   Clock, Sun, Moon, List, Sparkles, LayoutDashboard,
-  Calendar, AlertCircle, Flame, Crosshair
+  Calendar, AlertCircle, Flame, Crosshair, Mic, MicOff
 } from 'lucide-react';
 import axios from 'axios';
 import { getPriorityTask, calculatePotentialMomentum } from '@/shared/priorityPipeline';
@@ -44,6 +44,28 @@ type TaskItem = {
   createdAt?: string;
 };
 
+type CelebrationType = 'point' | 'badge' | null;
+type SpeechTarget = 'goal' | 'manualTitle' | null;
+
+const CONFETTI_PIECES = [
+  { left: '4%', delay: '0s', duration: '3.2s', color: '#3b82f6', rotate: '-18deg' },
+  { left: '10%', delay: '0.2s', duration: '3.6s', color: '#06b6d4', rotate: '12deg' },
+  { left: '16%', delay: '0.1s', duration: '3.1s', color: '#f59e0b', rotate: '-8deg' },
+  { left: '22%', delay: '0.35s', duration: '3.8s', color: '#60a5fa', rotate: '20deg' },
+  { left: '28%', delay: '0.15s', duration: '3.3s', color: '#22c55e', rotate: '-14deg' },
+  { left: '34%', delay: '0.45s', duration: '3.9s', color: '#38bdf8', rotate: '10deg' },
+  { left: '40%', delay: '0.05s', duration: '3s', color: '#a855f7', rotate: '-20deg' },
+  { left: '46%', delay: '0.25s', duration: '3.5s', color: '#f97316', rotate: '16deg' },
+  { left: '52%', delay: '0.12s', duration: '3.4s', color: '#3b82f6', rotate: '-10deg' },
+  { left: '58%', delay: '0.4s', duration: '3.7s', color: '#14b8a6', rotate: '22deg' },
+  { left: '64%', delay: '0.18s', duration: '3.15s', color: '#eab308', rotate: '-12deg' },
+  { left: '70%', delay: '0.3s', duration: '3.6s', color: '#818cf8', rotate: '14deg' },
+  { left: '76%', delay: '0.08s', duration: '3.25s', color: '#0ea5e9', rotate: '-16deg' },
+  { left: '82%', delay: '0.38s', duration: '3.85s', color: '#f43f5e', rotate: '18deg' },
+  { left: '88%', delay: '0.22s', duration: '3.45s', color: '#3b82f6', rotate: '-6deg' },
+  { left: '94%', delay: '0.5s', duration: '4s', color: '#06b6d4', rotate: '24deg' },
+];
+
 const formatDeadline = (deadline?: string | Date) => {
   if (!deadline) return 'No date';
 
@@ -75,6 +97,7 @@ export default function Dashboard() {
   const [availableTime, setAvailableTime] = useState(180);
   const momentumRef = useRef(0);
   const pointsRef = useRef(0);
+  const previousPointsRef = useRef<number | null>(null);
   
   const [creationMode, setCreationMode] = useState<'ai' | 'manual'>('ai');
   const [goal, setGoal] = useState('');
@@ -89,10 +112,106 @@ export default function Dashboard() {
   const [momentum, setMomentum] = useState(0); 
   const [points, setPoints] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationType, setCelebrationType] = useState<CelebrationType>(null);
+  const [showTaskConfetti, setShowTaskConfetti] = useState(false);
+  const [speechTarget, setSpeechTarget] = useState<SpeechTarget>(null);
+  const [speechError, setSpeechError] = useState('');
   const missionCount = tasks.length;
   const momentumTier = momentum >= 80 ? 'Overdrive' : momentum >= 45 ? 'Hot Streak' : 'Warmup';
   const currentBadge = getCurrentBadge(points);
   const badgeProgress = getProgressToNextBadge(points);
+  const hasUnlockedBadge = currentBadge !== null;
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const speechDraftRef = useRef('');
+
+  const speechSupported =
+    typeof window !== 'undefined' &&
+    typeof (window.SpeechRecognition ?? window.webkitSpeechRecognition) !== 'undefined';
+
+  const mergeTranscript = (baseText: string, transcript: string) => {
+    const trimmedBase = baseText.trimEnd();
+    const trimmedTranscript = transcript.trim();
+
+    if (!trimmedTranscript) {
+      return baseText;
+    }
+
+    if (!trimmedBase) {
+      return trimmedTranscript;
+    }
+
+    return `${trimmedBase} ${trimmedTranscript}`;
+  };
+
+  const updateSpeechField = useCallback((target: Exclude<SpeechTarget, null>, value: string) => {
+    if (target === 'goal') {
+      setGoal(value);
+      return;
+    }
+
+    setManualTask((current) => ({
+      ...current,
+      title: value,
+    }));
+  }, []);
+
+  const stopSpeechRecognition = useCallback(() => {
+    recognitionRef.current?.stop();
+  }, []);
+
+  const startSpeechRecognition = useCallback((target: Exclude<SpeechTarget, null>) => {
+    const SpeechRecognitionCtor =
+      typeof window !== 'undefined'
+        ? window.SpeechRecognition ?? window.webkitSpeechRecognition
+        : undefined;
+
+    if (!SpeechRecognitionCtor) {
+      setSpeechError('Speech to text is not supported in this browser.');
+      return;
+    }
+
+    recognitionRef.current?.stop();
+
+    const recognition = new SpeechRecognitionCtor();
+    const baseText = target === 'goal' ? goal : manualTask.title;
+
+    speechDraftRef.current = baseText;
+    recognition.lang = 'en-US';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onresult = (event) => {
+      let transcript = '';
+
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        transcript += event.results[index][0]?.transcript ?? '';
+      }
+
+      updateSpeechField(target, mergeTranscript(speechDraftRef.current, transcript));
+    };
+
+    recognition.onerror = (event) => {
+      if (event.error !== 'aborted') {
+        setSpeechError('Voice capture failed. Please try again.');
+      }
+    };
+
+    recognition.onend = () => {
+      recognitionRef.current = null;
+      setSpeechTarget((current) => (current === target ? null : current));
+    };
+
+    recognitionRef.current = recognition;
+    setSpeechError('');
+    setSpeechTarget(target);
+    recognition.start();
+  }, [goal, manualTask.title, updateSpeechField]);
+
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+    };
+  }, []);
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -117,6 +236,7 @@ export default function Dashboard() {
       setPoints(points);
       momentumRef.current = momentum;
       pointsRef.current = points;
+      previousPointsRef.current = points;
     } catch (err) {
       console.error('Failed to fetch user data', err);
       const savedMomentum = localStorage.getItem('snowball-momentum');
@@ -130,6 +250,7 @@ export default function Dashboard() {
         const p = parseInt(savedPoints);
         setPoints(p);
         pointsRef.current = p;
+        previousPointsRef.current = p;
       }
     }
   }, []);
@@ -162,8 +283,12 @@ export default function Dashboard() {
       pointsRef.current = newPoints;
       setMomentum(0);
       momentumRef.current = 0;
+      setCelebrationType('point');
       setShowCelebration(true);
-      setTimeout(() => setShowCelebration(false), 3000);
+      setTimeout(() => {
+        setShowCelebration(false);
+        setCelebrationType(null);
+      }, 3000);
       debouncedUpdateUserData(0, newPoints);
     } else {
       debouncedUpdateUserData(momentum, points);
@@ -171,13 +296,25 @@ export default function Dashboard() {
   }, [momentum, points, debouncedUpdateUserData]);
 
   useEffect(() => {
-    const previousBadge = getCurrentBadge(points - 1);
+    if (previousPointsRef.current === null) {
+      previousPointsRef.current = points;
+      return;
+    }
+
+    const previousPoints = previousPointsRef.current;
+    const previousBadge = getCurrentBadge(previousPoints);
     const newBadge = getCurrentBadge(points);
     
-    if (previousBadge.id !== newBadge.id && points > 0) {
+    if (points > previousPoints && newBadge && previousBadge?.id !== newBadge.id) {
+      setCelebrationType('badge');
       setShowCelebration(true);
-      setTimeout(() => setShowCelebration(false), 4000);
+      setTimeout(() => {
+        setShowCelebration(false);
+        setCelebrationType(null);
+      }, 4000);
     }
+
+    previousPointsRef.current = points;
   }, [points]);
 
   const handleAIGenerate = async () => {
@@ -266,6 +403,7 @@ export default function Dashboard() {
 
   const markDone = async (task: TaskItem) => {
     try {
+      const completedAllTasks = tasks.length === 1;
       await axios.patch('/api/tasks', { id: task._id, status: 'done' });
       const gain = calculatePotentialMomentum({
         id: task._id,
@@ -283,6 +421,13 @@ export default function Dashboard() {
       
       setCurrentTask(null);
       await fetchTasks();
+
+      if (completedAllTasks) {
+        setShowTaskConfetti(true);
+        setTimeout(() => {
+          setShowTaskConfetti(false);
+        }, 4200);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -315,6 +460,23 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col min-h-screen relative overflow-x-hidden transition-colors duration-500" data-theme={theme}>
       <div className="fixed inset-0 synth-grid pointer-events-none opacity-20 z-0"></div>
+      {showTaskConfetti && (
+        <div className="pointer-events-none fixed inset-0 z-[110] overflow-hidden" aria-hidden="true">
+          {CONFETTI_PIECES.map((piece, index) => (
+            <span
+              key={`${piece.left}-${index}`}
+              className="task-confetti-piece"
+              style={{
+                left: piece.left,
+                animationDelay: piece.delay,
+                animationDuration: piece.duration,
+                backgroundColor: piece.color,
+                transform: `rotate(${piece.rotate})`,
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       <header className={`relative z-20 backdrop-blur-md ${theme === 'light' ? 'border-b border-black/10 bg-white/25' : 'border-b border-white/5 bg-base-100/25'}`}>
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
@@ -325,7 +487,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className={`text-[11px] font-black uppercase tracking-[0.35em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>Mission Control</p>
-                <span className="font-black text-2xl tracking-tighter neon-text-primary italic">SNOWBALL</span>
+                <span className="font-black text-2xl tracking-tighter text-blue-500 drop-shadow-[0_0_18px_rgba(59,130,246,0.75)] italic">SNOWBALL</span>
               </div>
             </div>
 
@@ -370,8 +532,10 @@ export default function Dashboard() {
                 <div>
                   <p className={`text-[10px] font-black uppercase tracking-[0.25em] ${theme === 'light' ? 'text-black/45' : 'text-white/45'}`}>Badge</p>
                   <div className="mt-1 flex items-center gap-2">
-                    <span className="text-xl">{currentBadge.icon}</span>
-                    <span className={`text-lg font-black ${theme === 'light' ? 'text-black' : 'text-white'}`}>{currentBadge.name}</span>
+                    <span className="text-xl">{currentBadge?.icon ?? '🔒'}</span>
+                    <span className={`text-lg font-black ${theme === 'light' ? 'text-black' : 'text-white'}`}>
+                      {currentBadge?.name ?? 'No Badge Yet'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -453,7 +617,7 @@ export default function Dashboard() {
               {!currentTask ? (
                 <div className="w-full max-w-5xl px-4">
                   <div className="focus-frame rounded-[2.5rem] px-6 py-10 text-center sm:px-10 sm:py-14 flex flex-col items-center justify-center">
-                  <h2 className={`text-5xl sm:text-7xl font-black mb-6 italic tracking-tighter uppercase ${theme === 'light' ? 'text-black' : 'text-white'}`}><span className="neon-text-primary">Press Start.</span></h2>
+                  <h2 className={`text-5xl sm:text-7xl font-black mb-6 italic tracking-tighter uppercase ${theme === 'light' ? 'text-black' : 'text-white'}`}><span className="text-blue-500 drop-shadow-[0_0_22px_rgba(59,130,246,0.8)]">Press Start.</span></h2>
                   <p className={`text-xl mb-12 font-medium tracking-widest uppercase ${theme === 'light' ? 'text-black/60' : 'text-white/60'}`}>Your next best move is one hit away.</p>
                   
                   <button 
@@ -472,7 +636,7 @@ export default function Dashboard() {
                       <p className={`text-lg font-bold uppercase tracking-widest ${theme === 'light' ? 'text-black/80' : 'text-white/80'}`}>
                         How much time do you have?
                       </p>
-                      <p className={`text-3xl font-black mt-2 ${theme === 'light' ? 'text-black' : 'text-white'} neon-text-primary`}>
+                      <p className="mt-2 text-3xl font-black text-blue-500 drop-shadow-[0_0_20px_rgba(59,130,246,0.78)]">
                         {availableTime >= 60 
                           ? `${Math.floor(availableTime / 60)}h ${availableTime % 60}m` 
                           : `${availableTime}m`}
@@ -575,6 +739,17 @@ export default function Dashboard() {
                     <p className={`mt-2 text-sm leading-6 ${theme === 'light' ? 'text-black/55' : 'text-white/55'}`}>Use AI for a quick breakdown or enter a task manually like a Notion database row.</p>
                   </div>
 
+                  <div className={`mb-6 rounded-2xl border px-4 py-3 text-xs font-medium ${theme === 'light' ? 'border-black/10 bg-white/80 text-black/60' : 'border-white/10 bg-white/5 text-white/60'}`}>
+                    {speechSupported
+                      ? speechTarget
+                        ? `Listening for ${speechTarget === 'goal' ? 'AI brainstorm' : 'task title'}...`
+                        : 'Use the mic to dictate your brainstorm or task title.'
+                      : 'Speech to text is available in supported browsers like Chrome and Edge.'}
+                    {speechError ? (
+                      <span className={`ml-2 ${theme === 'light' ? 'text-red-600' : 'text-red-400'}`}>{speechError}</span>
+                    ) : null}
+                  </div>
+
                   <div className={`mb-6 inline-flex rounded-xl border p-1 ${theme === 'light' ? 'border-black/10 bg-white' : 'border-white/10 bg-black/20'}`}>
                     <button 
                       onClick={() => setCreationMode('ai')}
@@ -592,7 +767,24 @@ export default function Dashboard() {
 
                   {creationMode === 'ai' ? (
                     <div>
-                      <h3 className={`text-lg font-semibold ${theme === 'light' ? 'text-black' : 'text-white'}`}>Brainstorm from a larger goal</h3>
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className={`text-lg font-semibold ${theme === 'light' ? 'text-black' : 'text-white'}`}>Brainstorm from a larger goal</h3>
+                        <button
+                          type="button"
+                          onClick={() => (speechTarget === 'goal' ? stopSpeechRecognition() : startSpeechRecognition('goal'))}
+                          className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-xs font-black uppercase tracking-[0.18em] transition-colors ${
+                            speechTarget === 'goal'
+                              ? 'border-blue-500 bg-blue-500 text-white shadow-[0_0_24px_rgba(59,130,246,0.35)]'
+                              : theme === 'light'
+                                ? 'border-black/10 bg-white text-black hover:bg-black/5'
+                                : 'border-white/10 bg-white/5 text-white hover:bg-white/10'
+                          }`}
+                          disabled={!speechSupported}
+                        >
+                          {speechTarget === 'goal' ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                          {speechTarget === 'goal' ? 'Stop Mic' : 'Voice Input'}
+                        </button>
+                      </div>
                       <p className={`mt-2 text-sm leading-6 ${theme === 'light' ? 'text-black/55' : 'text-white/55'}`}>Paste the bigger project and Snowball will turn it into a short list of actionable tasks.</p>
                       <textarea 
                         className={`mt-5 min-h-48 w-full rounded-2xl border px-4 py-4 text-sm outline-none transition-colors ${theme === 'light' ? 'border-black/10 bg-white text-black placeholder:text-black/30 focus:border-primary' : 'border-white/10 bg-[#111111] text-white placeholder:text-white/30 focus:border-primary'}`}
@@ -611,7 +803,24 @@ export default function Dashboard() {
                     </div>
                   ) : (
                     <form onSubmit={handleManualCreate}>
-                      <h3 className={`text-lg font-semibold ${theme === 'light' ? 'text-black' : 'text-white'}`}>Create manually</h3>
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className={`text-lg font-semibold ${theme === 'light' ? 'text-black' : 'text-white'}`}>Create manually</h3>
+                        <button
+                          type="button"
+                          onClick={() => (speechTarget === 'manualTitle' ? stopSpeechRecognition() : startSpeechRecognition('manualTitle'))}
+                          className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-xs font-black uppercase tracking-[0.18em] transition-colors ${
+                            speechTarget === 'manualTitle'
+                              ? 'border-blue-500 bg-blue-500 text-white shadow-[0_0_24px_rgba(59,130,246,0.35)]'
+                              : theme === 'light'
+                                ? 'border-black/10 bg-white text-black hover:bg-black/5'
+                                : 'border-white/10 bg-white/5 text-white hover:bg-white/10'
+                          }`}
+                          disabled={!speechSupported}
+                        >
+                          {speechTarget === 'manualTitle' ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                          {speechTarget === 'manualTitle' ? 'Stop Mic' : 'Voice Input'}
+                        </button>
+                      </div>
                       
                       <div className="mt-5 grid gap-5">
                         <div className="form-control">
@@ -764,7 +973,7 @@ export default function Dashboard() {
               className="w-full max-w-5xl mx-auto"
             >
               <div className="flex justify-between items-center mb-8">
-                <h2 className={`text-3xl font-black italic uppercase tracking-tighter ${theme === 'light' ? 'text-black' : 'neon-text-primary'}`}>Achievement Hall</h2>
+                <h2 className="text-3xl font-black italic uppercase tracking-tighter text-blue-500 drop-shadow-[0_0_20px_rgba(59,130,246,0.8)]">Achievement Hall</h2>
                 <div className="flex items-center gap-4">
                   <div className={`badge badge-primary font-black italic border-none px-4 py-4 ${theme === 'light' ? 'text-white' : 'text-white'}`}>
                     {points} POINTS
@@ -775,13 +984,27 @@ export default function Dashboard() {
               <div className="mb-8">
                 <div className={`glass-card rounded-3xl p-8 text-center ${theme === 'light' ? 'border-black/10' : 'border-white/10'}`}>
                   <div className="mb-6">
-                    <div className={`text-6xl mb-4 ${currentBadge.color}`}>{currentBadge.icon}</div>
-                    <h3 className={`text-3xl font-black uppercase tracking-tight mb-2 ${theme === 'light' ? 'text-black' : 'text-white'}`}>
-                      {currentBadge.name}
-                    </h3>
-                    <p className={`text-lg font-medium ${theme === 'light' ? 'text-black/70' : 'text-white/70'}`}>
-                      {currentBadge.description}
-                    </p>
+                    {currentBadge ? (
+                      <>
+                        <div className={`text-6xl mb-4 ${currentBadge.color}`}>{currentBadge.icon}</div>
+                        <h3 className={`text-3xl font-black uppercase tracking-tight mb-2 ${theme === 'light' ? 'text-black' : 'text-white'}`}>
+                          {currentBadge.name}
+                        </h3>
+                        <p className={`text-lg font-medium ${theme === 'light' ? 'text-black/70' : 'text-white/70'}`}>
+                          {currentBadge.description}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <div className={`text-6xl mb-4 ${theme === 'light' ? 'text-black/35' : 'text-white/35'}`}>🔒</div>
+                        <h3 className={`text-3xl font-black uppercase tracking-tight mb-2 ${theme === 'light' ? 'text-black' : 'text-white'}`}>
+                          No Badge Yet
+                        </h3>
+                        <p className={`text-lg font-medium ${theme === 'light' ? 'text-black/70' : 'text-white/70'}`}>
+                          Earn your first point to unlock the Recruit badge.
+                        </p>
+                      </>
+                    )}
                   </div>
 
                   {badgeProgress.progress < 100 && (
@@ -807,7 +1030,7 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {BADGES.map((badge) => {
                   const isUnlocked = points >= badge.minPoints;
-                  const isCurrent = badge.id === currentBadge.id;
+                  const isCurrent = badge.id === currentBadge?.id;
 
                   return (
                     <div 
@@ -858,20 +1081,24 @@ export default function Dashboard() {
             className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
           >
             <div className={`glass-card text-center p-12 rounded-[3rem] shadow-[0_0_100px_rgba(37,99,235,0.4)] neon-border-primary ${theme === 'light' ? 'text-black' : 'text-white'}`}>
-              {momentum >= 100 ? (
+              {celebrationType === 'point' ? (
                 <>
                   <Trophy className="w-20 h-20 text-warning mx-auto mb-6 drop-shadow-[0_0_20px_rgba(255,165,0,0.5)]" />
                   <h1 className={`text-5xl font-black italic tracking-tighter mb-2 ${theme === 'light' ? 'text-black' : 'neon-text-primary'}`}>MOMENTUM CRITICAL!</h1>
                   <p className={`font-black text-xl uppercase tracking-widest ${theme === 'light' ? 'text-black/80' : 'text-white/80'}`}>+1 RANK ACHIEVED</p>
                 </>
-              ) : (
+              ) : celebrationType === 'badge' ? (
                 <>
-                  <div className={`text-6xl mb-6 ${currentBadge.color}`}>{currentBadge.icon}</div>
-                  <h1 className={`text-5xl font-black italic tracking-tighter mb-2 ${theme === 'light' ? 'text-black' : 'neon-text-primary'}`}>BADGE UNLOCKED!</h1>
-                  <p className={`font-black text-xl uppercase tracking-widest mb-2 ${theme === 'light' ? 'text-black/80' : 'text-white/80'}`}>{currentBadge.name}</p>
-                  <p className={`text-lg ${theme === 'light' ? 'text-black/60' : 'text-white/60'}`}>{currentBadge.description}</p>
+                  {hasUnlockedBadge && currentBadge ? (
+                    <>
+                      <div className={`text-6xl mb-6 ${currentBadge.color}`}>{currentBadge.icon}</div>
+                      <h1 className={`text-5xl font-black italic tracking-tighter mb-2 ${theme === 'light' ? 'text-black' : 'neon-text-primary'}`}>BADGE UNLOCKED!</h1>
+                      <p className={`font-black text-xl uppercase tracking-widest mb-2 ${theme === 'light' ? 'text-black/80' : 'text-white/80'}`}>{currentBadge.name}</p>
+                      <p className={`text-lg ${theme === 'light' ? 'text-black/60' : 'text-white/60'}`}>{currentBadge.description}</p>
+                    </>
+                  ) : null}
                 </>
-              )}
+              ) : null}
             </div>
           </motion.div>
         )}

@@ -2,6 +2,7 @@
 
 import Spline, { type SplineEvent } from '@splinetool/react-spline';
 import { useRouter } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 import { useTheme } from '@/frontend/context/ThemeContext';
 
 const ACTIONS: Array<{ match: string[]; href: string }> = [
@@ -19,9 +20,39 @@ type SplineBackgroundProps = {
 export default function SplineBackground({ forceTheme }: SplineBackgroundProps) {
   const router = useRouter();
   const { theme } = useTheme();
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const activeTheme = forceTheme ?? theme;
 
   const scene = activeTheme === 'light' ? LIGHT_MODE_SCENE : DARK_MODE_SCENE;
+
+  useEffect(() => {
+    const container = containerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const removeSplineBadge = () => {
+      const brandingLinks = container.querySelectorAll('a[href*="spline.design"]');
+
+      brandingLinks.forEach((link) => link.remove());
+    };
+
+    removeSplineBadge();
+
+    const observer = new MutationObserver(() => {
+      removeSplineBadge();
+    });
+
+    observer.observe(container, {
+      childList: true,
+      subtree: true,
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [activeTheme]);
 
   const handleSplineAction = (event: SplineEvent) => {
     const targetName = event.target.name?.trim().toLowerCase();
@@ -46,7 +77,7 @@ export default function SplineBackground({ forceTheme }: SplineBackgroundProps) 
   };
 
   return (
-    <div className="landing-spline fixed inset-0 z-0">
+    <div ref={containerRef} className="landing-spline fixed inset-0 z-0">
       <Spline
         key={activeTheme}
         scene={scene}

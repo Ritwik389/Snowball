@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { Zap, Mail, Lock, User, Loader2, ArrowRight, Sun, Moon, Trophy, ShieldCheck } from 'lucide-react';
 import { useTheme } from '@/frontend/context/ThemeContext';
 import axios from 'axios';
 
 export default function SignUpPage() {
-  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -22,8 +21,29 @@ export default function SignUpPage() {
     setError('');
 
     try {
-      await axios.post('/api/auth/signup', { name, email, password });
-      router.push('/auth/signin?success=Account created! Please sign in.');
+      const normalizedEmail = email.trim().toLowerCase();
+      const normalizedPassword = password.trim();
+
+      await axios.post('/api/auth/signup', {
+        name: name.trim(),
+        email: normalizedEmail,
+        password: normalizedPassword,
+      });
+
+      const signInResult = await signIn('credentials', {
+        email: normalizedEmail,
+        password: normalizedPassword,
+        redirect: false,
+        callbackUrl: '/dashboard',
+      });
+
+      if (signInResult?.error) {
+        setError('Account created, but automatic sign-in failed. Please sign in.');
+        setLoading(false);
+        return;
+      }
+
+      window.location.assign(signInResult?.url ?? '/dashboard');
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         setError(err.response?.data?.error || 'Failed to create account.');

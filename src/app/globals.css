@@ -130,3 +130,30 @@
 .landing-spline a[href*="spline.design"] {
   display: none !important;
 }
+
+.task-confetti-piece {
+  position: absolute;
+  top: -10vh;
+  width: 12px;
+  height: 24px;
+  border-radius: 999px;
+  opacity: 0.95;
+  box-shadow: 0 0 18px rgba(59, 130, 246, 0.28);
+  animation-name: task-confetti-fall;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: forwards;
+}
+
+@keyframes task-confetti-fall {
+  0% {
+    transform: translate3d(0, -8vh, 0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(0, 118vh, 0) rotate(540deg);
+    opacity: 0;
+  }
+}

@@ -16,7 +16,7 @@ export const BADGES: Badge[] = [
     description: 'Just getting started on your productivity journey',
     icon: '🛡️',
     color: 'text-gray-500',
-    minPoints: 0,
+    minPoints: 1,
     maxPoints: 99,
     rarity: 'common'
   },
@@ -71,17 +71,27 @@ export const BADGES: Badge[] = [
   }
 ];
 
-export function getCurrentBadge(points: number): Badge {
+export function getCurrentBadge(points: number): Badge | null {
+  if (points < BADGES[0].minPoints) {
+    return null;
+  }
+
   for (let i = BADGES.length - 1; i >= 0; i--) {
     if (points >= BADGES[i].minPoints) {
       return BADGES[i];
     }
   }
-  return BADGES[0];
+
+  return null;
 }
 
 export function getNextBadge(points: number): Badge | null {
   const currentBadge = getCurrentBadge(points);
+
+  if (!currentBadge) {
+    return BADGES[0] ?? null;
+  }
+
   const currentIndex = BADGES.findIndex(badge => badge.id === currentBadge.id);
 
   if (currentIndex < BADGES.length - 1) {
@@ -95,8 +105,22 @@ export function getProgressToNextBadge(points: number): { current: number; next:
   const currentBadge = getCurrentBadge(points);
   const nextBadge = getNextBadge(points);
 
+  if (!currentBadge && nextBadge) {
+    const progress = (points / nextBadge.minPoints) * 100;
+
+    return {
+      current: points,
+      next: nextBadge.minPoints,
+      progress: Math.min(100, Math.max(0, progress))
+    };
+  }
+
   if (!nextBadge) {
     return { current: points, next: points, progress: 100 };
+  }
+
+  if (!currentBadge) {
+    return { current: points, next: points, progress: 0 };
   }
 
   const progress = ((points - currentBadge.minPoints) / (nextBadge.minPoints - currentBadge.minPoints)) * 100;
