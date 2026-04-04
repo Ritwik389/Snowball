@@ -1,37 +1,158 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Snowball
 
-## Getting Started
+**Break Down Your Goals With AI. Stay Focused. Build Momentum.**
 
-First, run the development server:
+Transform task overwhelm into unstoppable progress with AI-powered task breakdown and gamified momentum tracking.
+
+---
+
+## 🎯 What is Snowball?
+
+Snowball is built for people drowning in long task lists. When you have dozens of goals but can't bring yourself to start, Snowball helps you:
+
+- **AI-Powered Task Breakdown**: Paste any large, overwhelming goal and let AI intelligently break it down into manageable micro-tasks
+- **Single Task Focus**: The app shows you ONE task at a time—no distractions, no overwhelm. Just what matters now
+- **Gamified Momentum System**: Complete tasks to build momentum, convert momentum into points, and unlock badges for long-term consistency
+- **Smart Task Prioritization**: The app ranks tasks using urgency × importance + deadlines, so you always know what to work on next
+
+---
+
+## 🚀 Live Demo
+
+Try Snowball now: **[https://snowball-peach.vercel.app/](https://snowball-peach.vercel.app/)**
+
+---
+
+## 📋 Getting Started
+
+### Prerequisites
+
+- **Node.js** (v18 or higher)
+- **npm** or **yarn**
+
+### Installation
+
+1. **Clone the repository** (or navigate to the project folder)
+   ```bash
+   cd Snowball
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   - Copy the `.env.example` file to `.env.local`:
+     ```bash
+     cp .env.example .env.local
+     ```
+   - Open `.env.local` and fill in the required variables:
+     ```
+     MONGODB_URI=your_mongodb_connection_string
+     UPSTASH_REDIS_REST_URL=your_redis_url
+     UPSTASH_REDIS_REST_TOKEN=your_redis_token
+     NEXTAUTH_URL=http://localhost:3000
+     NEXTAUTH_SECRET=your_secret_key
+     PORT=3000
+     GROQ_API_KEY=your_groq_api_key
+     ```
+
+4. **Run the development server**
+   ```bash
+   npm run dev
+   ```
+
+5. **Open in browser**
+   - Navigate to `http://localhost:3000`
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework**: Next.js 16 with React 19
+- **Authentication**: NextAuth.js with MongoDB Adapter
+- **Database**: MongoDB
+- **Caching**: Upstash Redis
+- **AI**: Google Generative AI
+- **Styling**: Tailwind CSS + DaisyUI
+- **Animations**: Framer Motion
+- **3D Graphics**: Three.js + Vanta
+
+---
+
+## 📸 Screenshots
+
+Coming soon! Add your app screenshots here.
+
+---
+
+## 📖 How It Works
+
+### 1. Start With A Goal
+Paste an overwhelming goal or project idea. The AI breaks it down into concrete, actionable micro-tasks.
+
+### 2. Build Your Mission Queue
+Every task gets:
+- Importance score (1-10)
+- Urgency score (1-10)
+- Estimated time
+- Deadline
+
+### 3. Play For Momentum
+- Complete tasks to build momentum
+- Unlock badges as you earn points
+- Watch your consistency compound over time
+
+---
+
+## 🎮 Key Features
+
+### ✨ AI Task Generation
+Upload your big goal and get an intelligent breakdown in seconds. No more analysis paralysis.
+
+### 🎯 One Task At A Time
+See only the highest-priority task based on urgency, importance, and available time. Clean. Focused. Clear.
+
+### 🏆 Gamification System
+- **Momentum**: Builds when you complete tasks
+- **Points**: Earned when momentum bars fill up
+- **Badges**: Unlocked as you accumulate points over time
+- Skipping a task only drops momentum by 5—failure doesn't reset your streak
+
+---
+
+## 📝 Available Scripts
 
 ```bash
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Build for production
+npm build
+
+# Start production server
+npm start
+
+# Run linter
+npm run lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🤝 Need Help?
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+If you run into any issues:
+1. Make sure all environment variables are set correctly in `.env.local`
+2. Verify your MongoDB and Redis connections
+3. Check that Node.js version is v18 or higher
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 📄 License
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This project is private. For more information, contact the maintainers.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# Snowball
+**Ready to stop procrastinating and start building momentum?** [Get started now →](https://snowball-peach.vercel.app/)
